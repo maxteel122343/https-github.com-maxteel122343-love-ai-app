@@ -122,12 +122,6 @@ export const CallScreen: React.FC<CallScreenProps> = ({ profile, callReason, onE
         if (data) setCurrentConversationId(data.id);
       }
 
-      if (!apiKey) {
-        alert("API Key missing! Please configured it in settings.");
-        onEndCall('error');
-        return;
-      }
-
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
         video: { width: 640, height: 480 }

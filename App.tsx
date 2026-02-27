@@ -20,6 +20,8 @@ const DEFAULT_PROFILE: PartnerProfile = {
   language: PlatformLanguage.PT
 };
 
+const DEFAULT_GEMINI_API_KEY = "AIzaSyDNwhe9s8gdC2SnU2g2bOyBSgRmoE1ER3s";
+
 type AppState = 'SETUP' | 'CALLING' | 'WAITING' | 'INCOMING';
 
 function App() {
@@ -27,7 +29,7 @@ function App() {
   const [profile, setProfile] = useState<PartnerProfile>(DEFAULT_PROFILE);
   const [callReason, setCallReason] = useState<string>('initial');
   const [nextScheduledCall, setNextScheduledCall] = useState<ScheduledCall | null>(null);
-  const [apiKey, setApiKey] = useState<string>(() => localStorage.getItem('GEMINI_API_KEY') || "AIzaSyDNwhe9s8gdC2SnU2g2bOyBSgRmoE1ER3s");
+  const [apiKey, setApiKey] = useState<string>(() => localStorage.getItem('GEMINI_API_KEY') || DEFAULT_GEMINI_API_KEY);
   const [user, setUser] = useState<any>(null);
   const [currentUserProfile, setCurrentUserProfile] = useState<UserProfile | null>(null);
 
@@ -53,6 +55,8 @@ function App() {
               const settings = data.ai_settings as any;
               if (settings.gemini_api_key) {
                 setApiKey(settings.gemini_api_key);
+              } else {
+                setApiKey(DEFAULT_GEMINI_API_KEY);
               }
               // Merge with default to ensure all fields exist
               setProfile(prev => ({ ...prev, ...settings }));
