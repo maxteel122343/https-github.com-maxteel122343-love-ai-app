@@ -93,6 +93,7 @@ export interface PartnerProfile {
   relationshipScore: number; // 0 to 100
   history: CallLog[];
   language: PlatformLanguage;
+  gemini_api_key?: string;
 }
 
 export const VOICE_META: Record<VoiceName, { gender: 'Male' | 'Female', label: string }> = {

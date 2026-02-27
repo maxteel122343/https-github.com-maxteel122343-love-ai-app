@@ -43,6 +43,22 @@ function App() {
   }, []);
 
   useEffect(() => {
+    if (user) {
+      supabase.from('profiles').select('ai_settings').eq('id', user.id).single()
+        .then(({ data }) => {
+          if (data?.ai_settings) {
+            const settings = data.ai_settings as any;
+            if (settings.gemini_api_key) {
+              setApiKey(settings.gemini_api_key);
+            }
+            // Merge with default to ensure all fields exist
+            setProfile(prev => ({ ...prev, ...settings }));
+          }
+        });
+    }
+  }, [user]);
+
+  useEffect(() => {
     localStorage.setItem('GEMINI_API_KEY', apiKey);
   }, [apiKey]);
 
@@ -104,6 +120,16 @@ function App() {
       }
     }
   }, [profile.history, appState]);
+
+  const handleApiKeyChange = async (newKey: string) => {
+    setApiKey(newKey);
+    localStorage.setItem('GEMINI_API_KEY', newKey);
+    if (user) {
+      await supabase.from('profiles').update({
+        ai_settings: { ...profile, gemini_api_key: newKey }
+      }).eq('id', user.id);
+    }
+  };
 
   const startCall = () => {
     if (!profile.personality.trim()) {
@@ -169,7 +195,7 @@ function App() {
           onStartCall={startCall}
           nextScheduledCall={nextScheduledCall}
           apiKey={apiKey}
-          setApiKey={setApiKey}
+          setApiKey={handleApiKeyChange}
           user={user}
         />
       )}

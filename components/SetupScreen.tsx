@@ -108,7 +108,9 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ profile, setProfile, o
 
     const syncProfileToSupabase = async (newProfile: PartnerProfile) => {
         if (!user) return;
-        await supabase.from('profiles').update({ ai_settings: newProfile }).eq('id', user.id);
+        await supabase.from('profiles').update({
+            ai_settings: { ...newProfile, gemini_api_key: apiKey }
+        }).eq('id', user.id);
     };
 
     const updateProfileAndSync = (updater: (prev: PartnerProfile) => PartnerProfile) => {

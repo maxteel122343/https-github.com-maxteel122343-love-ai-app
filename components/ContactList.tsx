@@ -119,6 +119,17 @@ export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPar
         }
     };
 
+    const filteredContacts = contacts.filter(contact => {
+        const query = searchQuery.toLowerCase();
+        return (
+            contact.alias?.toLowerCase().includes(query) ||
+            contact.contact_name?.toLowerCase().includes(query) ||
+            contact.profile?.display_name?.toLowerCase().includes(query) ||
+            contact.profile?.personal_number?.includes(query) ||
+            contact.profile?.ai_number?.includes(query)
+        );
+    });
+
     const handleCallContact = (contact: Contact) => {
         if (!contact.profile) return;
         const partnerProfile: PartnerProfile = {
@@ -133,7 +144,8 @@ export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPar
             theme: isDark ? 'dark' : 'light',
             relationshipScore: 100,
             history: [],
-            language: contact.profile.ai_settings?.language || PlatformLanguage.PT
+            language: contact.profile.ai_settings?.language || PlatformLanguage.PT,
+            gemini_api_key: contact.profile.ai_settings?.gemini_api_key
         };
         onCallPartner(partnerProfile);
     };
@@ -173,9 +185,9 @@ export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPar
                     <input
                         type="text"
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value.toUpperCase())}
+                        onChange={(e) => setSearchQuery(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && searchContact()}
-                        placeholder="BUSCAR POR NÚMERO (EX: AI-1234)..."
+                        placeholder="BUSCAR POR NOME OU NÚMERO..."
                         className={`w-full p-6 pr-14 rounded-[2rem] border text-xs font-black tracking-[0.2em] transition-all duration-300 shadow-sm outline-none ${inputClasses}`}
                     />
                     <button
@@ -228,13 +240,13 @@ export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPar
                     <h3 className="text-xs font-black uppercase tracking-widest opacity-30 italic">Agenda de Conexões</h3>
                 </div>
                 <div className="max-h-[500px] overflow-y-auto no-scrollbar">
-                    {contacts.length === 0 ? (
+                    {filteredContacts.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-24 opacity-20 italic">
                             <span className="text-4xl mb-4">🌑</span>
-                            <p className="text-[10px] font-black uppercase tracking-widest">Nenhuma conexão estabelecida</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest">Nenhuma conexão encontrada</p>
                         </div>
                     ) : (
-                        contacts.map((contact) => (
+                        filteredContacts.map((contact) => (
                             <div
                                 key={contact.id}
                                 className={`flex items-center gap-5 p-6 border-b transition-all duration-300 ${itemClasses} last:border-0 hover:bg-blue-600/5 group`}
