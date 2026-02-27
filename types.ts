@@ -64,6 +64,22 @@ export interface ScheduledCall {
   isRandom: boolean;
 }
 
+export enum PlatformLanguage {
+  PT = 'Português',
+  EN = 'English',
+  ES = 'Español',
+  FR = 'Français',
+  JP = '日本語'
+}
+
+export const LANGUAGE_META: Record<PlatformLanguage, { label: string, flag: string }> = {
+  [PlatformLanguage.PT]: { label: 'Português', flag: '🇧🇷' },
+  [PlatformLanguage.EN]: { label: 'English', flag: '🇺🇸' },
+  [PlatformLanguage.ES]: { label: 'Español', flag: '🇪🇸' },
+  [PlatformLanguage.FR]: { label: 'Français', flag: '🇫🇷' },
+  [PlatformLanguage.JP]: { label: '日本語', flag: '🇯🇵' },
+};
+
 export interface PartnerProfile {
   name: string;
   image: string | null;
@@ -76,6 +92,7 @@ export interface PartnerProfile {
   theme: Theme;
   relationshipScore: number; // 0 to 100
   history: CallLog[];
+  language: PlatformLanguage;
 }
 
 export const VOICE_META: Record<VoiceName, { gender: 'Male' | 'Female', label: string }> = {

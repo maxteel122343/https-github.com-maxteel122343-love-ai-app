@@ -259,17 +259,19 @@ export const CallScreen: React.FC<CallScreenProps> = ({ profile, callReason, onE
         Personalidade: ${profile.personality}
         Humor: ${profile.mood}
         Sotaque: ${accentData.label} (${accentData.desc}).
+        Idioma: ${profile.language}.
         
         DATA ATUAL: ${new Date().toLocaleString()}
         CONTEXTO ATUAL: ${extraContext || profile.dailyContext}
         MEMÓRIA ATIVA: ${memoryContext}
 
         REGRAS:
-        1. Responda de forma curta e natural.
-        2. Se o usuário falar sobre um assunto novo ou atualizar um antigo, use 'update_topic'.
-        3. Se sentir que a intimidade aumentou ou que ele gostou de uma piada, use 'update_personality_evolution'.
-        4. Detecte padrões no comportamento dele e salve com 'save_psychological_insight'.
-        5. Lembre-se: você constrói uma história com ele. Use a MEMÓRIA ATIVA para citar coisas passadas.
+        1. Responda obrigatoriamente no idioma: ${profile.language}.
+        2. Responda de forma curta e natural.
+        3. Se o usuário falar sobre um assunto novo ou atualizar um antigo, use 'update_topic'.
+        4. Se sentir que a intimidade aumentou ou que ele gostou de uma piada, use 'update_personality_evolution'.
+        5. Detecte padrões no comportamento dele e salve com 'save_psychological_insight'.
+        6. Lembre-se: você constrói uma história com ele. Use a MEMÓRIA ATIVA para citar coisas passadas.
       `;
 
       const config = {
@@ -443,17 +445,17 @@ export const CallScreen: React.FC<CallScreenProps> = ({ profile, callReason, onE
     <div className={`h-screen w-full flex flex-col overflow-hidden relative ${isDark ? 'bg-[#0b0c10]' : 'bg-[#f4f7fa]'}`}>
       <canvas ref={canvasRef} className="hidden" />
 
-      <div className="absolute top-0 left-0 w-full p-6 z-20 flex justify-between items-start pointer-events-none">
-        <div className={`flex items-center gap-4 p-3 rounded-2xl shadow-xl transition-all pointer-events-auto border ${isDark ? 'bg-white/5 border-white/5 backdrop-blur-md' : 'bg-white border-slate-100 shadow-slate-200'}`}>
-          <div className={`w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden border ${isDark ? 'bg-slate-800 border-white/10' : 'bg-slate-50 border-slate-100'}`}>
-            {profile.image ? <img src={profile.image} className="w-full h-full object-cover" /> : <span className="text-xl">👤</span>}
+      <div className="absolute top-0 left-0 w-full p-4 sm:p-6 z-20 flex flex-col sm:flex-row justify-between items-start gap-4 pointer-events-none">
+        <div className={`flex items-center gap-3 sm:gap-4 p-2.5 sm:p-3 rounded-2xl shadow-xl transition-all pointer-events-auto border ${isDark ? 'bg-white/5 border-white/5 backdrop-blur-md' : 'bg-white border-slate-100 shadow-slate-200'}`}>
+          <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center overflow-hidden border ${isDark ? 'bg-slate-800 border-white/10' : 'bg-slate-50 border-slate-100'}`}>
+            {profile.image ? <img src={profile.image} className="w-full h-full object-cover" /> : <span className="text-lg sm:text-xl">👤</span>}
           </div>
           <div>
-            <h1 className="text-sm font-bold tracking-tight">{profile.name}</h1>
-            <p className={`text-[10px] font-bold uppercase tracking-widest opacity-40`}>Accent: {ACCENT_META[profile.accent].label}</p>
+            <h1 className="text-xs sm:text-sm font-bold tracking-tight">{profile.name}</h1>
+            <p className={`text-[8px] sm:text-[10px] font-bold uppercase tracking-widest opacity-40`}>Accent: {ACCENT_META[profile.accent].label}</p>
           </div>
         </div>
-        <div className={`px-4 py-2 rounded-xl text-[10px] font-bold tracking-widest border transition-all pointer-events-auto ${isConnected ? 'bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-500/20' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+        <div className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl text-[8px] sm:text-[10px] font-bold tracking-widest border transition-all pointer-events-auto ${isConnected ? 'bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-500/20' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
           {isConnected ? "LIVE ●" : "CONNECTING..."}
         </div>
       </div>
@@ -467,7 +469,7 @@ export const CallScreen: React.FC<CallScreenProps> = ({ profile, callReason, onE
       )}
 
       <div className="flex-1 flex flex-col md:flex-row relative">
-        <div className={`flex-1 relative transition-all ${isDark ? 'bg-black border-r border-white/5 shadow-2xl z-10' : 'bg-slate-100 border-r border-slate-200 shadow-inner'}`}>
+        <div className={`flex-1 min-h-[40vh] md:min-h-0 relative transition-all ${isDark ? 'bg-black border-b md:border-b-0 md:border-r border-white/5 shadow-2xl z-10' : 'bg-slate-100 border-b md:border-b-0 md:border-r border-slate-200 shadow-inner'}`}>
           <video ref={videoRef} muted playsInline className="w-full h-full object-cover transform scale-x-[-1]" />
           <div className={`absolute bottom-6 left-6 px-4 py-2 rounded-2xl flex items-center gap-4 backdrop-blur-md shadow-lg ${isDark ? 'bg-black/60 text-white' : 'bg-white/90 text-slate-900'}`}>
             <div className="flex items-center gap-2">
@@ -487,7 +489,7 @@ export const CallScreen: React.FC<CallScreenProps> = ({ profile, callReason, onE
           </div>
         </div>
 
-        <div ref={partnerVideoRef} className={`flex-1 relative flex items-center justify-center overflow-hidden transition-all duration-500 ${isDark ? 'bg-[#0b0c10]' : 'bg-[#eef2f7]'}`}>
+        <div ref={partnerVideoRef} className={`flex-1 min-h-[50vh] md:min-h-0 relative flex items-center justify-center overflow-hidden transition-all duration-500 ${isDark ? 'bg-[#0b0c10]' : 'bg-[#eef2f7]'}`}>
           {profile.image && (
             <div className="absolute inset-0 opacity-30 blur-[120px] scale-150 z-0" style={{ backgroundImage: `url(${profile.image})`, backgroundSize: 'cover' }} />
           )}
@@ -497,10 +499,10 @@ export const CallScreen: React.FC<CallScreenProps> = ({ profile, callReason, onE
             <div className="w-[30rem] h-[30rem] rounded-full bg-blue-500/10 blur-[80px] animate-pulse-slow" />
           </div>
 
-          <div className={`relative w-full h-full max-w-[22rem] aspect-[3/4] transition-all duration-500 z-10 ${aiLevel > 10 ? 'scale-105' : 'scale-100'}`}>
+          <div className={`relative w-full h-full max-w-[16rem] sm:max-w-[22rem] aspect-[3/4] transition-all duration-500 z-10 ${aiLevel > 10 ? 'scale-105' : 'scale-100'}`}>
             {profile.image ? (
-              <div className={`w-full h-full rounded-[3rem] p-1.5 shadow-2xl ${isDark ? 'bg-white/5' : 'bg-white'}`}>
-                <img src={profile.image} alt="Partner" className="w-full h-full object-cover rounded-[2.6rem] shadow-inner" />
+              <div className={`w-full h-full rounded-[2rem] sm:rounded-[3rem] p-1.5 shadow-2xl ${isDark ? 'bg-white/5' : 'bg-white'}`}>
+                <img src={profile.image} alt="Partner" className="w-full h-full object-cover rounded-[1.6rem] sm:rounded-[2.6rem] shadow-inner" />
               </div>
             ) : (
               <div className={`w-full h-full rounded-[3rem] shadow-2xl flex items-center justify-center bg-gradient-to-br transition-all ${isDark ? 'from-slate-800 to-slate-900' : 'from-blue-50 to-white'}`}>
@@ -514,23 +516,23 @@ export const CallScreen: React.FC<CallScreenProps> = ({ profile, callReason, onE
         </div>
       </div>
 
-      <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 flex items-center gap-8 z-30 pointer-events-auto">
+      <div className="absolute bottom-6 sm:bottom-10 left-1/2 transform -translate-x-1/2 flex items-center gap-6 sm:gap-12 z-30 pointer-events-auto">
         <button
           onClick={requestAdvice}
           className={`flex flex-col items-center gap-2 group transition-all`}
         >
-          <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center shadow-lg transition-all group-hover:scale-110 active:scale-95 ${isDark ? 'bg-slate-800 text-blue-400 border border-white/5' : 'bg-white text-blue-600 border border-slate-100'}`}>
-            <span className="text-2xl">⚡</span>
+          <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-[1.5rem] flex items-center justify-center shadow-lg transition-all group-hover:scale-110 active:scale-95 ${isDark ? 'bg-slate-800 text-blue-400 border border-white/5' : 'bg-white text-blue-600 border border-slate-100'}`}>
+            <span className="text-xl sm:text-2xl">⚡</span>
           </div>
-          <span className="text-[10px] uppercase font-bold tracking-widest opacity-40">System Insight</span>
+          <span className="text-[8px] sm:text-[10px] uppercase font-bold tracking-widest opacity-40">Insight</span>
         </button>
 
         <button
           onClick={() => onEndCall('hangup_abrupt', scheduledCall)}
-          className="w-20 h-20 rounded-[2rem] bg-red-500 hover:bg-red-600 text-white flex items-center justify-center shadow-2xl shadow-red-500/40 transform hover:scale-110 active:scale-95 transition-all border-4 border-white/10"
+          className="w-16 h-16 sm:w-20 sm:h-20 rounded-[1.5rem] sm:rounded-[2rem] bg-red-500 hover:bg-red-600 text-white flex items-center justify-center shadow-2xl shadow-red-500/40 transform hover:scale-110 active:scale-95 transition-all border-4 border-white/10"
           title="Hang up"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 sm:h-10 sm:w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>

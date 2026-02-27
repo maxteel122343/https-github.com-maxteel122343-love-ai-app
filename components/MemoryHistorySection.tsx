@@ -62,27 +62,29 @@ export const MemoryHistorySection: React.FC<MemoryHistorySectionProps> = ({ user
     return (
         <div className="w-full flex flex-col gap-6 animate-in fade-in duration-500">
             {/* Sub-Tabs */}
-            <div className="flex flex-wrap gap-2 p-1 rounded-3xl bg-black/5 dark:bg-white/5 border border-inherit">
-                {[
-                    { id: 'memory', label: '🧠 Memória', desc: 'Assuntos e Observações' },
-                    { id: 'history', label: '📊 Histórico', desc: 'Linha do Tempo' },
-                    { id: 'personality', label: '🎭 Personalidade', desc: 'Evolução da IA' },
-                    { id: 'user_profile', label: '👤 Perfil', desc: 'Análise Psicológica' },
-                    { id: 'strategy', label: '⏰ Estratégia', desc: 'Planejamento' },
-                    { id: 'external', label: '🌐 Global', desc: 'Interações Externas' }
-                ].map(tab => (
-                    <button
-                        key={tab.id}
-                        onClick={() => setSubTab(tab.id as SubTab)}
-                        className={`flex-1 min-w-[120px] px-4 py-3 rounded-2xl transition-all flex flex-col items-center gap-1 ${subTab === tab.id
+            <div className="w-full relative">
+                <div className={`flex flex-nowrap gap-2 p-1 rounded-3xl bg-black/5 dark:bg-white/5 border border-inherit overflow-x-auto scrollbar-hide no-scrollbar`}>
+                    {[
+                        { id: 'memory', label: '🧠 Memória', desc: 'Assuntos e Observações' },
+                        { id: 'history', label: '📊 Histórico', desc: 'Linha do Tempo' },
+                        { id: 'personality', label: '🎭 Personalidade', desc: 'Evolução da IA' },
+                        { id: 'user_profile', label: '👤 Perfil', desc: 'Análise Psicológica' },
+                        { id: 'strategy', label: '⏰ Estratégia', desc: 'Planejamento' },
+                        { id: 'external', label: '🌐 Global', desc: 'Interações Externas' }
+                    ].map(tab => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setSubTab(tab.id as SubTab)}
+                            className={`flex-1 min-w-[130px] px-4 py-3 rounded-2xl transition-all flex flex-col items-center gap-1 shrink-0 ${subTab === tab.id
                                 ? 'bg-blue-600 text-white shadow-lg'
                                 : 'hover:bg-black/5 dark:hover:bg-white/5 opacity-60'
-                            }`}
-                    >
-                        <span className="text-xs font-bold uppercase tracking-widest">{tab.label}</span>
-                        <span className="text-[8px] opacity-70 font-medium">{tab.desc}</span>
-                    </button>
-                ))}
+                                }`}
+                        >
+                            <span className="text-xs font-bold uppercase tracking-widest whitespace-nowrap">{tab.label}</span>
+                            <span className="text-[8px] opacity-70 font-medium whitespace-nowrap">{tab.desc}</span>
+                        </button>
+                    ))}
+                </div>
             </div>
 
             <main className="min-h-[400px]">
@@ -122,10 +124,10 @@ export const MemoryHistorySection: React.FC<MemoryHistorySectionProps> = ({ user
                                             <div key={conv.id} className="relative pl-6 border-l-2 border-blue-500/20">
                                                 <div className="absolute -left-[5px] top-0 w-2 h-2 rounded-full bg-blue-500" />
                                                 <p className="text-[10px] font-bold opacity-30 uppercase tracking-widest mb-1">{new Date(conv.started_at).toLocaleString()}</p>
-                                                {conv.conversation_insights?.map((insight: any) => (
-                                                    <div key={insight.id} className={`p-5 rounded-2xl border ${itemClasses}`}>
+                                                {conv.conversation_insights && conv.conversation_insights.length > 0 ? conv.conversation_insights.map((insight: any) => (
+                                                    <div key={insight.id} className={`p-4 sm:p-5 rounded-2xl border ${itemClasses}`}>
                                                         <div className="flex justify-between items-start mb-3">
-                                                            <div className="flex gap-2">
+                                                            <div className="flex flex-wrap gap-2">
                                                                 <StatusBadge label={insight.detected_emotion || 'Neutra'} color="text-pink-500" />
                                                                 <StatusBadge label={`Engagement: ${insight.engagement_score}%`} color="text-blue-500" />
                                                             </div>
@@ -137,7 +139,7 @@ export const MemoryHistorySection: React.FC<MemoryHistorySectionProps> = ({ user
                                                             ))}
                                                         </div>
                                                     </div>
-                                                ))}
+                                                )) : <p className="text-[10px] opacity-20 italic">Sem insights para esta sessão.</p>}
                                             </div>
                                         ))}
                                     </div>

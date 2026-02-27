@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { SetupScreen } from './components/SetupScreen';
 import { CallScreen } from './components/CallScreen';
 import { IncomingCallScreen } from './components/IncomingCallScreen';
-import { PartnerProfile, Mood, VoiceName, Accent, CallbackIntensity, ScheduledCall, CallLog } from './types';
+import { PartnerProfile, Mood, VoiceName, Accent, CallbackIntensity, ScheduledCall, CallLog, PlatformLanguage } from './types';
 import { supabase } from './supabaseClient';
 
 const DEFAULT_PROFILE: PartnerProfile = {
@@ -16,7 +16,8 @@ const DEFAULT_PROFILE: PartnerProfile = {
   intensity: CallbackIntensity.MEDIUM,
   theme: 'light',
   relationshipScore: 70, // Starts at 70%
-  history: []
+  history: [],
+  language: PlatformLanguage.PT
 };
 
 type AppState = 'SETUP' | 'CALLING' | 'WAITING' | 'INCOMING';

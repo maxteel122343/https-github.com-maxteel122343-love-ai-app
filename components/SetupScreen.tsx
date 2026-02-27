@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Mood, VoiceName, Accent, PartnerProfile, MOOD_EMOJIS, VOICE_META, ACCENT_META, CallbackIntensity, CallLog, ScheduledCall } from '../types';
+import { Mood, VoiceName, Accent, PartnerProfile, MOOD_EMOJIS, VOICE_META, ACCENT_META, CallbackIntensity, CallLog, ScheduledCall, PlatformLanguage, LANGUAGE_META } from '../types';
 import { ContactList } from './ContactList';
 import { AuthModal } from './AuthModal';
 import { CalendarTab } from './CalendarTab';
@@ -129,7 +129,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ profile, setProfile, o
             <div className="max-w-4xl w-full p-4">
 
                 {/* Header */}
-                <header className={`w-full flex justify-between items-center mb-8 pt-4`}>
+                <header className={`w-full flex flex-col sm:flex-row justify-between items-center gap-6 mb-8 pt-4`}>
                     <div className="flex items-center gap-3">
                         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shadow-lg shadow-blue-500/10 border ${isDark ? 'bg-white/5 border-white/5' : 'bg-white border-white'}`}>⚡</div>
                         <div>
@@ -161,46 +161,33 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ profile, setProfile, o
                 </header>
 
                 {/* Tabs */}
-                <nav className={`flex p-1.5 rounded-[1.5rem] border mb-8 max-w-sm mx-auto ${cardClasses}`}>
-                    <button
-                        onClick={() => setActiveTab('dashboard')}
-                        className={`flex-1 py-3 px-6 rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'dashboard' ? 'bg-blue-600 text-white shadow-lg' : 'opacity-40 hover:opacity-100'}`}
-                    >
-                        Dashboard
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('contacts')}
-                        className={`flex-1 py-3 px-6 rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'contacts' ? 'bg-blue-600 text-white shadow-lg' : 'opacity-40 hover:opacity-100'}`}
-                    >
-                        Contatos
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('calendar')}
-                        className={`flex-1 py-3 px-6 rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'calendar' ? 'bg-blue-600 text-white shadow-lg' : 'opacity-40 hover:opacity-100'}`}
-                    >
-                        Calendário
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('memory')}
-                        className={`flex-1 py-3 px-6 rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'memory' ? 'bg-blue-600 text-white shadow-lg' : 'opacity-40 hover:opacity-100'}`}
-                    >
-                        Memória
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('config')}
-                        className={`flex-1 py-3 px-6 rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'config' ? 'bg-blue-600 text-white shadow-lg' : 'opacity-40 hover:opacity-100'}`}
-                    >
-                        Config
-                    </button>
-                </nav>
+                <div className="w-full mb-8 relative">
+                    <nav className={`flex p-1.5 rounded-[1.5rem] border overflow-x-auto scrollbar-hide no-scrollbar ${cardClasses}`}>
+                        {[
+                            { id: 'dashboard', label: 'Dashboard' },
+                            { id: 'contacts', label: 'Contatos' },
+                            { id: 'calendar', label: 'Calendário' },
+                            { id: 'memory', label: 'Memória' },
+                            { id: 'config', label: 'Config' }
+                        ].map(tab => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id as any)}
+                                className={`flex-1 min-w-[100px] py-3 px-2 rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === tab.id ? 'bg-blue-600 text-white shadow-lg' : 'opacity-40 hover:opacity-100'}`}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
+                    </nav>
+                </div>
 
                 {/* Content */}
                 <main className="w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
                     {activeTab === 'dashboard' && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
                             {/* Left Column: Relationship Status */}
-                            <div className="flex flex-col gap-8">
-                                <div className={`p-10 rounded-[2rem] border overflow-hidden relative ${cardClasses}`}>
+                            <div className="flex flex-col gap-6 sm:gap-8">
+                                <div className={`p-6 sm:p-10 rounded-[2rem] border overflow-hidden relative ${cardClasses}`}>
                                     {/* Glass Glow */}
                                     <div className="absolute -top-24 -right-24 w-64 h-64 bg-blue-500/5 blur-[80px] rounded-full" />
 
@@ -223,9 +210,9 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ profile, setProfile, o
                                 </div>
 
                                 {/* Next Call Indicator */}
-                                <div className={`p-10 rounded-[2rem] border flex flex-col gap-6 transition-all ${nextScheduledCall ? 'border-blue-500 bg-blue-500/5 shadow-blue-500/10' : cardClasses}`}>
+                                <div className={`p-6 sm:p-10 rounded-[2rem] border flex flex-col gap-6 transition-all ${nextScheduledCall ? 'border-blue-500 bg-blue-500/5 shadow-blue-500/10' : cardClasses}`}>
                                     <div className="flex gap-4 items-center">
-                                        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shadow-inner ${nextScheduledCall ? 'bg-blue-500 text-white' : (isDark ? 'bg-slate-800' : 'bg-slate-100')}`}>
+                                        <div className={`w-14 sm:w-16 h-14 sm:h-16 rounded-2xl flex items-center justify-center text-2xl sm:text-3xl shadow-inner ${nextScheduledCall ? 'bg-blue-500 text-white' : (isDark ? 'bg-slate-800' : 'bg-slate-100')}`}>
                                             {nextScheduledCall ? '⏰' : '📞'}
                                         </div>
                                         <div>
@@ -483,18 +470,60 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ profile, setProfile, o
                                 </div>
                             </div>
 
-                            <div className="w-full">
-                                <label className="text-xs font-bold uppercase tracking-widest mb-4 block opacity-50">Voice Synthesis</label>
-                                <div className="flex flex-wrap gap-3">
-                                    {Object.values(VoiceName).map(voice => (
+                            <div className={`p-8 rounded-[2rem] border ${cardClasses}`}>
+                                <label className="text-xs font-bold uppercase tracking-widest mb-6 block opacity-50">Idioma da Plataforma</label>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                                    {Object.entries(LANGUAGE_META).map(([key, meta]) => (
                                         <button
-                                            key={voice}
-                                            onClick={() => updateProfileAndSync(prev => ({ ...prev, voice }))}
-                                            className={`px-5 py-2.5 rounded-2xl text-xs font-bold border transition-all ${profile.voice === voice ? (isDark ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-blue-600 border-blue-600 text-white shadow-sm') : cardClasses}`}
+                                            key={key}
+                                            onClick={() => updateProfileAndSync(prev => ({ ...prev, language: key as PlatformLanguage }))}
+                                            className={`py-3 px-2 rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all border shadow-sm flex items-center justify-center gap-2 ${profile.language === key
+                                                ? 'bg-blue-600 border-blue-600 text-white shadow-blue-600/20'
+                                                : `${isDark ? 'bg-[#0b0c10] border-slate-800 text-slate-500 hover:border-slate-700' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-white'}`
+                                                }`}
                                         >
-                                            {VOICE_META[voice].gender === 'Male' ? '♂' : '♀'} {voice}
+                                            <span>{meta.flag}</span>
+                                            <span>{meta.label}</span>
                                         </button>
                                     ))}
+                                </div>
+                            </div>
+
+                            <div className={`p-8 rounded-[2rem] border ${cardClasses}`}>
+                                <label className="text-xs font-bold uppercase tracking-widest mb-6 block opacity-50">Voz e Identidade (Género)</label>
+
+                                <div className="space-y-6">
+                                    {/* Feminino */}
+                                    <div>
+                                        <p className="text-[10px] font-bold uppercase tracking-widest opacity-30 mb-3 ml-1">Vozes Femininas ♀</p>
+                                        <div className="flex flex-wrap gap-3">
+                                            {Object.values(VoiceName).filter(v => VOICE_META[v].gender === 'Female').map(voice => (
+                                                <button
+                                                    key={voice}
+                                                    onClick={() => updateProfileAndSync(prev => ({ ...prev, voice }))}
+                                                    className={`px-5 py-2.5 rounded-2xl text-xs font-bold border transition-all ${profile.voice === voice ? 'bg-pink-600 border-pink-600 text-white shadow-lg shadow-pink-600/20' : cardClasses}`}
+                                                >
+                                                    {voice}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Masculino */}
+                                    <div>
+                                        <p className="text-[10px] font-bold uppercase tracking-widest opacity-30 mb-3 ml-1">Vozes Masculinas ♂</p>
+                                        <div className="flex flex-wrap gap-3">
+                                            {Object.values(VoiceName).filter(v => VOICE_META[v].gender === 'Male').map(voice => (
+                                                <button
+                                                    key={voice}
+                                                    onClick={() => updateProfileAndSync(prev => ({ ...prev, voice }))}
+                                                    className={`px-5 py-2.5 rounded-2xl text-xs font-bold border transition-all ${profile.voice === voice ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-600/20' : cardClasses}`}
+                                                >
+                                                    {voice}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 

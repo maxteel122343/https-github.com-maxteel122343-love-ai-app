@@ -18,7 +18,7 @@ export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({ profile,
     else if (callReason === 'random') displayText = "Ligando pra dar um oi...";
 
     return (
-        <div className={`fixed inset-0 z-50 flex flex-col items-center justify-between p-12 overflow-hidden ${isDark ? 'bg-[#0b0c10] text-white' : 'bg-[#f4f7fa] text-slate-900'}`}>
+        <div className={`fixed inset-0 z-50 flex flex-col items-center justify-between p-6 sm:p-12 overflow-hidden ${isDark ? 'bg-[#0b0c10] text-white' : 'bg-[#f4f7fa] text-slate-900'}`}>
             {/* Blurred Background */}
             {profile.image && (
                 <div
