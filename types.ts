@@ -97,3 +97,21 @@ export const MOOD_EMOJIS: Record<Mood, string> = {
   [Mood.COLD]: '❄️',
   [Mood.CHAOTIC]: '🤪'
 };
+
+export interface UserProfile {
+  id: string;
+  display_name: string;
+  personal_number: string;
+  ai_number: string;
+  avatar_url: string | null;
+  ai_settings: Partial<PartnerProfile>;
+}
+
+export interface Contact {
+  id: string;
+  owner_id: string;
+  target_id: string;
+  is_ai_contact: boolean;
+  alias: string | null;
+  profile?: UserProfile;
+}

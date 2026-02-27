@@ -3,6 +3,7 @@ import { SetupScreen } from './components/SetupScreen';
 import { CallScreen } from './components/CallScreen';
 import { IncomingCallScreen } from './components/IncomingCallScreen';
 import { PartnerProfile, Mood, VoiceName, Accent, CallbackIntensity, ScheduledCall, CallLog } from './types';
+import { supabase } from './supabaseClient';
 
 const DEFAULT_PROFILE: PartnerProfile = {
   name: "Amor",
@@ -26,6 +27,19 @@ function App() {
   const [callReason, setCallReason] = useState<string>('initial');
   const [nextScheduledCall, setNextScheduledCall] = useState<ScheduledCall | null>(null);
   const [apiKey, setApiKey] = useState<string>(() => localStorage.getItem('GEMINI_API_KEY') || "");
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('GEMINI_API_KEY', apiKey);
@@ -140,6 +154,7 @@ function App() {
           nextScheduledCall={nextScheduledCall}
           apiKey={apiKey}
           setApiKey={setApiKey}
+          user={user}
         />
       )}
 
