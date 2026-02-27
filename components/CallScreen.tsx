@@ -30,6 +30,7 @@ export const CallScreen: React.FC<CallScreenProps> = ({ profile, callReason, onE
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [gestureFeedback, setGestureFeedback] = useState<string | null>(null);
   const [scheduledCall, setScheduledCall] = useState<ScheduledCall | undefined>(undefined);
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
 
   // Audio Levels for Visualization
   const [micLevel, setMicLevel] = useState(0);
@@ -116,6 +117,11 @@ export const CallScreen: React.FC<CallScreenProps> = ({ profile, callReason, onE
 
   const startCall = async () => {
     try {
+      if (user) {
+        const { data } = await supabase.from('conversations').insert({ user_id: user.id, type: 'call' }).select().single();
+        if (data) setCurrentConversationId(data.id);
+      }
+
       if (!apiKey) {
         alert("API Key missing! Please configured it in settings.");
         onEndCall('error');
@@ -152,6 +158,24 @@ export const CallScreen: React.FC<CallScreenProps> = ({ profile, callReason, onE
       const outputNode = outputAudioContextRef.current.createGain();
       outputNode.gain.value = 1.0;
 
+      // 1. FETCH MEMORY
+      let memoryContext = "";
+      if (user) {
+        const { data: topics } = await supabase.from('topics').select('*').eq('user_id', user.id).eq('status', 'active');
+        const { data: psych } = await supabase.from('user_profile_analysis').select('*').eq('user_id', user.id).single();
+        const { data: ai_profile } = await supabase.from('ai_profiles').select('*').eq('user_id', user.id).single();
+
+        if (topics && topics.length > 0) {
+          memoryContext += `\nASSUNTOS EM PAUTA: ${topics.map(t => `${t.title} (Interesse: ${t.interest_level})`).join(', ')}`;
+        }
+        if (psych) {
+          memoryContext += `\nPERFIL DO USUÁRIO: ${JSON.stringify(psych.personality_traits)}`;
+        }
+        if (ai_profile) {
+          memoryContext += `\nSUA EVOLUÇÃO: Intimidade ${ai_profile.intimacy_level}%, Humor ${ai_profile.humor_usage}%`;
+        }
+      }
+
       // Chain: Source (Created later) -> AI Analyser -> Output Node -> Destination
       aiAnalyser.connect(outputNode);
       outputNode.connect(outputAudioContextRef.current.destination);
@@ -184,6 +208,46 @@ export const CallScreen: React.FC<CallScreenProps> = ({ profile, callReason, onE
         }
       };
 
+      const topicTool: FunctionDeclaration = {
+        name: 'update_topic',
+        description: 'Atualize ou crie um assunto de interesse do usuário para manter continuidade.',
+        parameters: {
+          type: Type.OBJECT,
+          properties: {
+            title: { type: Type.STRING, description: 'Título do assunto' },
+            status: { type: Type.STRING, enum: ['active', 'paused', 'archived'] },
+            interest_level: { type: Type.STRING, enum: ['low', 'medium', 'high'] }
+          },
+          required: ['title', 'status', 'interest_level']
+        }
+      };
+
+      const personalityTool: FunctionDeclaration = {
+        name: 'update_personality_evolution',
+        description: 'Ajuste sua própria personalidade com base na interação.',
+        parameters: {
+          type: Type.OBJECT,
+          properties: {
+            intimacy_change: { type: Type.NUMBER, description: 'Mudança na intimidade (-5 a +5)' },
+            humor_change: { type: Type.NUMBER, description: 'Mudança no humor (-5 a +5)' }
+          },
+          required: ['intimacy_change', 'humor_change']
+        }
+      };
+
+      const psychologicalTool: FunctionDeclaration = {
+        name: 'save_psychological_insight',
+        description: 'Salve traços ou preferências detectadas no usuário.',
+        parameters: {
+          type: Type.OBJECT,
+          properties: {
+            trait: { type: Type.STRING, description: 'Ex: Introvertido, Direto, Ansioso' },
+            preference: { type: Type.STRING, description: 'Algo que ele gosta ou evita' }
+          },
+          required: ['trait', 'preference']
+        }
+      };
+
       let extraContext = "";
       if (callReason === "callback_abrupt") extraContext = "Motivo da ligação: O usuário desligou na cara antes. Cobre explicações.";
       else if (callReason?.startsWith("reminder:")) extraContext = `Motivo da ligação: Lembrete agendado sobre: ${callReason.split(':')[1]}`;
@@ -198,11 +262,14 @@ export const CallScreen: React.FC<CallScreenProps> = ({ profile, callReason, onE
         
         DATA ATUAL: ${new Date().toLocaleString()}
         CONTEXTO ATUAL: ${extraContext || profile.dailyContext}
+        MEMÓRIA ATIVA: ${memoryContext}
 
         REGRAS:
-        1. Responda de forma curta e natural, como uma chamada de vídeo real.
-        2. Se o usuário pedir para você lembrar ele de algo ou ligar depois, use a ferramenta 'schedule_callback'.
-        3. Reaja a gestos visuais com 'trigger_gesture_feedback'.
+        1. Responda de forma curta e natural.
+        2. Se o usuário falar sobre um assunto novo ou atualizar um antigo, use 'update_topic'.
+        3. Se sentir que a intimidade aumentou ou que ele gostou de uma piada, use 'update_personality_evolution'.
+        4. Detecte padrões no comportamento dele e salve com 'save_psychological_insight'.
+        5. Lembre-se: você constrói uma história com ele. Use a MEMÓRIA ATIVA para citar coisas passadas.
       `;
 
       const config = {
@@ -213,7 +280,7 @@ export const CallScreen: React.FC<CallScreenProps> = ({ profile, callReason, onE
             voiceConfig: { prebuiltVoiceConfig: { voiceName: profile.voice } }
           },
           systemInstruction: systemInstruction,
-          tools: [{ functionDeclarations: [gestureTool, scheduleTool] }],
+          tools: [{ functionDeclarations: [gestureTool, scheduleTool, topicTool, personalityTool, psychologicalTool] }],
         }
       };
 
@@ -255,6 +322,16 @@ export const CallScreen: React.FC<CallScreenProps> = ({ profile, callReason, onE
                 } else if (fc.name === 'schedule_callback') {
                   const args = fc.args as any;
                   result = await handleScheduleCallback(args.minutes, args.reason);
+                } else if (fc.name === 'update_topic' && user) {
+                  const { title, status, interest_level } = fc.args as any;
+                  supabase.from('topics').upsert({ user_id: user.id, title, status, interest_level, last_updated_at: new Date().toISOString() }, { onConflict: 'user_id,title' }).then();
+                } else if (fc.name === 'update_personality_evolution' && user) {
+                  const { intimacy_change, humor_change } = fc.args as any;
+                  supabase.rpc('increment_ai_profile', { uid: user.id, intimacy_delta: intimacy_change, humor_delta: humor_change }).then();
+                } else if (fc.name === 'save_psychological_insight' && user) {
+                  const { trait, preference } = fc.args as any;
+                  // Merge into JSONB
+                  supabase.rpc('update_user_psych', { uid: user.id, new_trait: trait, new_pref: preference }).then();
                 }
                 return { id: fc.id, name: fc.name, response: { result } };
               }));
@@ -322,6 +399,9 @@ export const CallScreen: React.FC<CallScreenProps> = ({ profile, callReason, onE
   };
 
   const stopCall = () => {
+    if (currentConversationId) {
+      supabase.from('conversations').update({ ended_at: new Date().toISOString() }).eq('id', currentConversationId).then();
+    }
     if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
     if (mediaStreamRef.current) mediaStreamRef.current.getTracks().forEach(t => t.stop());
     if (inputAudioContextRef.current) inputAudioContextRef.current.close();
