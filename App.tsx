@@ -89,6 +89,21 @@ function App() {
     }
   }, [appState, nextScheduledCall, profile.intensity]);
 
+  // 3. AI Curiosity / Reactivity Logic
+  useEffect(() => {
+    if (appState === 'WAITING' || appState === 'SETUP') {
+      const lastLog = profile.history[profile.history.length - 1];
+      if (lastLog && lastLog.notes.includes("Alterou o lembrete") && Date.now() - lastLog.timestamp < 10000) {
+        // Trigger a "curious" call after 5-10 seconds
+        const timer = setTimeout(() => {
+          setCallReason("curiosity_calendar");
+          setAppState('INCOMING');
+        }, 8000);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [profile.history, appState]);
+
   const startCall = () => {
     if (!profile.personality.trim()) {
       alert("Por favor, descreva a personalidade!");
@@ -164,6 +179,7 @@ function App() {
           callReason={callReason}
           onEndCall={handleEndCall}
           apiKey={apiKey}
+          user={user}
         />
       )}
 

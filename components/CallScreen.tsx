@@ -1,12 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality, FunctionDeclaration, Type } from '@google/genai';
 import { PartnerProfile, MOOD_EMOJIS, VOICE_META, ACCENT_META, ScheduledCall } from '../types';
+import { supabase } from '../supabaseClient';
 
 interface CallScreenProps {
   profile: PartnerProfile;
   callReason?: string;
   onEndCall: (reason: 'hangup_abrupt' | 'hangup_normal' | 'error', scheduledCall?: ScheduledCall) => void;
   apiKey: string;
+  user?: any;
 }
 
 // Helper types for Audio handling
@@ -23,7 +25,7 @@ const GESTURE_EMOJIS: Record<string, string> = {
   'look_away': '👀 Olhando pro lado...'
 };
 
-export const CallScreen: React.FC<CallScreenProps> = ({ profile, callReason, onEndCall, apiKey }) => {
+export const CallScreen: React.FC<CallScreenProps> = ({ profile, callReason, onEndCall, apiKey, user }) => {
   const [isConnected, setIsConnected] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [gestureFeedback, setGestureFeedback] = useState<string | null>(null);
@@ -92,10 +94,19 @@ export const CallScreen: React.FC<CallScreenProps> = ({ profile, callReason, onE
     return "unknown gesture";
   };
 
-  const handleScheduleCallback = (minutes: number, reason: string) => {
+  const handleScheduleCallback = async (minutes: number, reason: string) => {
     const triggerTime = Date.now() + (minutes * 60 * 1000);
     const newSchedule: ScheduledCall = { triggerTime, reason, isRandom: false };
     setScheduledCall(newSchedule);
+
+    if (user) {
+      await supabase.from('reminders').insert({
+        owner_id: user.id,
+        title: reason,
+        trigger_at: new Date(triggerTime).toISOString()
+      });
+    }
+
     return `Agendado para ligar em ${minutes} minutos sobre ${reason}`;
   };
 
@@ -176,6 +187,7 @@ export const CallScreen: React.FC<CallScreenProps> = ({ profile, callReason, onE
       let extraContext = "";
       if (callReason === "callback_abrupt") extraContext = "Motivo da ligação: O usuário desligou na cara antes. Cobre explicações.";
       else if (callReason?.startsWith("reminder:")) extraContext = `Motivo da ligação: Lembrete agendado sobre: ${callReason.split(':')[1]}`;
+      else if (callReason === "curiosity_calendar") extraContext = "Motivo da ligação: Você percebeu que o usuário alterou um compromisso que você tinha marcado no calendário. Fique curiosa, pergunte por que ele mudou e se ele ainda quer que você o lembre.";
       else if (callReason === "random") extraContext = "Motivo da ligação: Você sentiu saudades e ligou aleatoriamente.";
 
       const systemInstruction = `
@@ -184,6 +196,7 @@ export const CallScreen: React.FC<CallScreenProps> = ({ profile, callReason, onE
         Humor: ${profile.mood}
         Sotaque: ${accentData.label} (${accentData.desc}).
         
+        DATA ATUAL: ${new Date().toLocaleString()}
         CONTEXTO ATUAL: ${extraContext || profile.dailyContext}
 
         REGRAS:
@@ -235,16 +248,16 @@ export const CallScreen: React.FC<CallScreenProps> = ({ profile, callReason, onE
           },
           onmessage: async (message: LiveServerMessage) => {
             if (message.toolCall) {
-              const responses = message.toolCall.functionCalls.map(fc => {
+              const responses = await Promise.all(message.toolCall.functionCalls.map(async fc => {
                 let result = "ok";
                 if (fc.name === 'trigger_gesture_feedback') {
                   result = triggerGestureFeedback((fc.args as any).gesture);
                 } else if (fc.name === 'schedule_callback') {
                   const args = fc.args as any;
-                  result = handleScheduleCallback(args.minutes, args.reason);
+                  result = await handleScheduleCallback(args.minutes, args.reason);
                 }
                 return { id: fc.id, name: fc.name, response: { result } };
-              });
+              }));
               sessionPromise.then(session => session.sendToolResponse({ functionResponses: responses }));
             }
 

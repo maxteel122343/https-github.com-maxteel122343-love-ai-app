@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { Mood, VoiceName, Accent, PartnerProfile, MOOD_EMOJIS, VOICE_META, ACCENT_META, CallbackIntensity, CallLog, ScheduledCall } from '../types';
 import { ContactList } from './ContactList';
 import { AuthModal } from './AuthModal';
+import { CalendarTab } from './CalendarTab';
 import { supabase } from '../supabaseClient';
 
 interface SetupScreenProps {
@@ -15,7 +16,7 @@ interface SetupScreenProps {
 }
 
 export const SetupScreen: React.FC<SetupScreenProps> = ({ profile, setProfile, onStartCall, nextScheduledCall, apiKey, setApiKey, user }) => {
-    const [activeTab, setActiveTab] = useState<'dashboard' | 'contacts' | 'config'>('dashboard');
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'contacts' | 'calendar' | 'config'>('dashboard');
     const [showAuth, setShowAuth] = useState(false);
     const [isValidating, setIsValidating] = useState(false);
     const [apiStatus, setApiStatus] = useState<'idle' | 'valid' | 'invalid'>('idle');
@@ -173,6 +174,12 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ profile, setProfile, o
                         Contatos
                     </button>
                     <button
+                        onClick={() => setActiveTab('calendar')}
+                        className={`flex-1 py-3 px-6 rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'calendar' ? 'bg-blue-600 text-white shadow-lg' : 'opacity-40 hover:opacity-100'}`}
+                    >
+                        Calendário
+                    </button>
+                    <button
                         onClick={() => setActiveTab('config')}
                         className={`flex-1 py-3 px-6 rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'config' ? 'bg-blue-600 text-white shadow-lg' : 'opacity-40 hover:opacity-100'}`}
                     >
@@ -283,6 +290,31 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ profile, setProfile, o
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'calendar' && (
+                        <div className="w-full">
+                            {user ? (
+                                <CalendarTab
+                                    user={user}
+                                    profile={profile}
+                                    setProfile={setProfile}
+                                    isDark={isDark}
+                                />
+                            ) : (
+                                <div className={`p-12 text-center rounded-[3rem] border ${cardClasses}`}>
+                                    <div className="w-20 h-20 bg-blue-500/10 rounded-full flex items-center justify-center text-4xl mx-auto mb-6">📅</div>
+                                    <h2 className="text-2xl font-bold mb-4">Calendário Offline</h2>
+                                    <p className="opacity-60 mb-8 px-12">Faça login para salvar seus compromissos na nuvem e permitir que a IA gerencie seu dia.</p>
+                                    <button
+                                        onClick={() => setShowAuth(true)}
+                                        className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95"
+                                    >
+                                        Entrar Agora
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     )}
 

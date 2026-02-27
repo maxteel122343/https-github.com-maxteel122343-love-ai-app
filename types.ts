@@ -115,3 +115,12 @@ export interface Contact {
   alias: string | null;
   profile?: UserProfile;
 }
+
+export interface Reminder {
+  id: string;
+  owner_id: string;
+  title: string;
+  trigger_at: string; // ISO string
+  is_completed: boolean;
+  created_at: string;
+}
