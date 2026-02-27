@@ -17,8 +17,9 @@ export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPar
     const [showAddModal, setShowAddModal] = useState(false);
     const [newContact, setNewContact] = useState({ name: '', number: '', image: '', type: 'user' as 'user' | 'ai' });
 
-    const cardClasses = isDark ? "bg-[#15181e] border-slate-800" : "bg-white border-slate-100 shadow-sm";
-    const itemClasses = isDark ? "hover:bg-white/5 border-white/5" : "hover:bg-slate-50 border-slate-100";
+    const cardClasses = isDark ? "bg-[#15181e] border-white/5" : "bg-white border-slate-100 shadow-sm";
+    const itemClasses = isDark ? "hover:bg-white/5 border-white/5 bg-[#0b0c10]" : "hover:bg-slate-50 border-slate-100 bg-white";
+    const inputClasses = isDark ? "bg-white/5 border-white/10 text-white focus:border-blue-500" : "bg-slate-50 border-slate-200 text-slate-900 focus:border-blue-500";
 
     useEffect(() => {
         if (currentUser) {
@@ -88,20 +89,14 @@ export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPar
         }
 
         setLoading(true);
-
-        // First, check if a profile with this number exists. If not, we might need a placeholder or logic to handle "external" contacts.
-        // For now, let's create a "virtual" contact for the user. 
-        // In a real app, you'd likely hit an RPC to create this contact specifically.
-
         const { error } = await supabase
             .from('contacts')
             .insert({
                 owner_id: currentUser.id,
                 contact_name: newContact.name,
                 is_ai_contact: newContact.type === 'ai',
-                status: 'offline', // Placeholder
+                status: 'offline',
                 alias: newContact.name,
-                // Using a JSON metadata field for the manual data if possible, or just standard fields
             });
 
         if (error) {
@@ -126,8 +121,6 @@ export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPar
 
     const handleCallContact = (contact: Contact) => {
         if (!contact.profile) return;
-
-        // Map the stored AI settings back to a PartnerProfile
         const partnerProfile: PartnerProfile = {
             name: contact.is_ai_contact ? `AI ${contact.profile.display_name}` : contact.profile.display_name,
             image: contact.profile.avatar_url || contact.profile.ai_settings?.image || null,
@@ -142,26 +135,32 @@ export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPar
             history: [],
             language: contact.profile.ai_settings?.language || PlatformLanguage.PT
         };
-
         onCallPartner(partnerProfile);
     };
 
     return (
-        <div className="w-full flex flex-col gap-6">
+        <div className="w-full flex flex-col gap-8 animate-in fade-in slide-in-from-bottom-6 duration-700">
+            {/* Header */}
+            <div>
+                <h2 className="text-3xl font-black tracking-tighter italic uppercase">Contatos</h2>
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] opacity-30">Diretório de Conexões</p>
+            </div>
+
             {/* My ID Card */}
             {myProfile && (
-                <div className={`p-6 rounded-[2rem] border ${cardClasses} flex justify-between items-center bg-gradient-to-r from-blue-500/5 to-transparent`}>
+                <div className={`p-8 rounded-[3rem] border relative overflow-hidden ${cardClasses}`}>
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 blur-3xl rounded-full" />
                     <div>
-                        <h3 className="text-[10px] font-bold uppercase tracking-widest opacity-40 mb-1">Meus Números</h3>
-                        <div className="flex gap-4">
-                            <div>
-                                <p className="text-xs opacity-60">Pessoal</p>
-                                <p className="text-lg font-bold font-mono text-blue-500">{myProfile.personal_number}</p>
+                        <h3 className="text-[10px] font-black uppercase tracking-widest opacity-30 mb-6 italic">Minha Identidade Digital</h3>
+                        <div className="flex flex-col sm:flex-row gap-8">
+                            <div className="flex-1">
+                                <p className="text-[9px] font-black opacity-20 uppercase tracking-widest mb-1">Linha Pessoal</p>
+                                <p className="text-2xl font-black italic tracking-tighter text-blue-600">{myProfile.personal_number}</p>
                             </div>
-                            <div className="w-[1px] h-10 bg-slate-500/10" />
-                            <div>
-                                <p className="text-xs opacity-60">Minha IA</p>
-                                <p className="text-lg font-bold font-mono text-pink-500">{myProfile.ai_number}</p>
+                            <div className="hidden sm:block w-[1px] bg-inherit opacity-20" />
+                            <div className="flex-1">
+                                <p className="text-[9px] font-black opacity-20 uppercase tracking-widest mb-1">Cortex AI (Público)</p>
+                                <p className="text-2xl font-black italic tracking-tighter text-pink-600">{myProfile.ai_number}</p>
                             </div>
                         </div>
                     </div>
@@ -169,28 +168,26 @@ export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPar
             )}
 
             {/* Search Bar */}
-            <div className="flex gap-3">
-                <div className="relative flex-1">
+            <div className="flex gap-4">
+                <div className="relative flex-1 group">
                     <input
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value.toUpperCase())}
                         onKeyDown={(e) => e.key === 'Enter' && searchContact()}
                         placeholder="BUSCAR POR NÚMERO (EX: AI-1234)..."
-                        className={`w-full p-5 pr-12 rounded-[1.5rem] border text-sm font-mono tracking-wider transition-all shadow-sm ${isDark ? 'bg-white/5 border-white/5 focus:bg-white/10' : 'bg-white border-slate-100 focus:border-blue-500'
-                            }`}
+                        className={`w-full p-6 pr-14 rounded-[2rem] border text-xs font-black tracking-[0.2em] transition-all duration-300 shadow-sm outline-none ${inputClasses}`}
                     />
                     <button
                         onClick={searchContact}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 p-2 hover:bg-black/5 rounded-full transition-all"
+                        className="absolute right-5 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-all"
                     >
-                        {loading ? "..." : "🔍"}
+                        {loading ? <div className="w-4 h-4 border-2 border-blue-600/20 border-t-blue-600 rounded-full animate-spin" /> : <span className="text-lg">🔍</span>}
                     </button>
                 </div>
                 <button
                     onClick={() => setShowAddModal(true)}
-                    className="aspect-square p-5 bg-blue-600 text-white rounded-[1.5rem] shadow-lg shadow-blue-500/20 hover:scale-105 active:scale-95 transition-all text-xl"
-                    title="Novo Contato"
+                    className="w-16 h-16 bg-blue-600 text-white rounded-[1.8rem] shadow-xl shadow-blue-600/30 hover:scale-110 active:scale-95 transition-all text-2xl flex items-center justify-center font-black"
                 >
                     +
                 </button>
@@ -198,27 +195,27 @@ export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPar
 
             {/* Search Result */}
             {searchResult && (
-                <div className={`p-6 rounded-[2rem] border-2 border-blue-500/30 animate-in fade-in slide-in-from-top-4 ${cardClasses}`}>
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-2xl">
-                            👤
+                <div className={`p-8 rounded-[3rem] border-2 border-blue-600/30 animate-in fade-in slide-in-from-top-6 ${cardClasses} shadow-2xl`}>
+                    <div className="flex flex-col sm:flex-row items-center gap-6">
+                        <div className="w-20 h-20 rounded-[2rem] bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-3xl text-white shadow-xl">
+                            {searchResult.avatar_url ? <img src={searchResult.avatar_url} className="w-full h-full object-cover rounded-[2rem]" /> : '👤'}
                         </div>
-                        <div className="flex-1">
-                            <h4 className="font-bold">{searchResult.display_name}</h4>
-                            <p className="text-[10px] opacity-50 uppercase tracking-widest">{searchResult.personal_number}</p>
+                        <div className="flex-1 text-center sm:text-left">
+                            <h4 className="text-xl font-black italic tracking-tighter uppercase">{searchResult.display_name}</h4>
+                            <p className="text-[10px] font-black opacity-30 uppercase tracking-[0.2em] mt-1">{searchResult.personal_number}</p>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex flex-col gap-2 w-full sm:w-auto">
                             <button
                                 onClick={() => addContact(searchResult, false)}
-                                className="px-3 py-2 bg-blue-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-blue-700"
+                                className="px-6 py-3 bg-white dark:bg-white/5 text-blue-600 border border-blue-600/20 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all"
                             >
-                                Adicionar Usuário
+                                Perfil Humano
                             </button>
                             <button
                                 onClick={() => addContact(searchResult, true)}
-                                className="px-3 py-2 bg-pink-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-pink-700"
+                                className="px-6 py-3 bg-pink-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-pink-700 shadow-lg shadow-pink-600/20 transition-all"
                             >
-                                Adicionar IA
+                                Perfil AI
                             </button>
                         </div>
                     </div>
@@ -226,36 +223,37 @@ export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPar
             )}
 
             {/* Contacts List */}
-            <div className={`rounded-[2rem] border overflow-hidden ${cardClasses}`}>
-                <div className="p-6 border-b border-inherit">
-                    <h3 className="text-xs font-bold uppercase tracking-widest opacity-40">Meus Contatos</h3>
+            <div className={`rounded-[3rem] border overflow-hidden ${cardClasses}`}>
+                <div className="p-8 border-b border-inherit bg-black/5 dark:bg-white/5">
+                    <h3 className="text-xs font-black uppercase tracking-widest opacity-30 italic">Agenda de Conexões</h3>
                 </div>
-                <div className="max-h-[400px] overflow-y-auto">
+                <div className="max-h-[500px] overflow-y-auto no-scrollbar">
                     {contacts.length === 0 ? (
-                        <div className="p-12 text-center opacity-30 italic">
-                            Sua lista de contatos está vazia.
+                        <div className="flex flex-col items-center justify-center py-24 opacity-20 italic">
+                            <span className="text-4xl mb-4">🌑</span>
+                            <p className="text-[10px] font-black uppercase tracking-widest">Nenhuma conexão estabelecida</p>
                         </div>
                     ) : (
                         contacts.map((contact) => (
                             <div
                                 key={contact.id}
-                                className={`flex items-center gap-4 p-4 border-b transition-all ${itemClasses} last:border-0`}
+                                className={`flex items-center gap-5 p-6 border-b transition-all duration-300 ${itemClasses} last:border-0 hover:bg-blue-600/5 group`}
                             >
-                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl ${contact.is_ai_contact ? 'bg-pink-500/10 text-pink-500' : 'bg-blue-500/10 text-blue-500'}`}>
+                                <div className={`w-14 h-14 rounded-[1.5rem] flex items-center justify-center text-2xl shadow-sm transition-transform group-hover:scale-110 ${contact.is_ai_contact ? 'bg-pink-600/10 text-pink-600' : 'bg-blue-600/10 text-blue-600'}`}>
                                     {contact.is_ai_contact ? '⚡' : '👤'}
                                 </div>
-                                <div className="flex-1">
-                                    <h4 className="font-bold text-sm tracking-tight">{contact.alias}</h4>
-                                    <p className="text-[10px] opacity-40 uppercase tracking-widest">
-                                        {contact.is_ai_contact ? `Inteligência Artificial (ID: ${contact.profile?.ai_number})` : `Usuário (ID: ${contact.profile?.personal_number})`}
+                                <div className="flex-1 min-w-0">
+                                    <h4 className="font-black text-base tracking-tight truncate italic">{contact.alias}</h4>
+                                    <p className="text-[9px] font-black opacity-30 uppercase tracking-widest mt-1">
+                                        {contact.is_ai_contact ? `INTELECTO ARTIFICIAL • ${contact.profile?.ai_number || 'OFFLINE'}` : `CONTATO HUMANO • ${contact.profile?.personal_number || 'LATENTE'}`}
                                     </p>
                                 </div>
                                 <button
                                     onClick={() => handleCallContact(contact)}
-                                    className="p-3 bg-blue-600 text-white rounded-2xl shadow-lg shadow-blue-500/20 hover:scale-110 active:scale-95 transition-all"
+                                    className="w-12 h-12 bg-blue-600 text-white rounded-2xl shadow-xl shadow-blue-600/20 hover:scale-110 active:scale-95 transition-all flex items-center justify-center"
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
                                     </svg>
                                 </button>
                             </div>
@@ -263,65 +261,69 @@ export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPar
                     )}
                 </div>
             </div>
+
             {/* Manual Add Modal */}
             {showAddModal && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className={`w-full max-w-md p-8 rounded-[2.5rem] border shadow-2xl scale-in-95 animate-in ${cardClasses}`}>
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-lg font-bold">Novo Contato</h3>
-                            <button onClick={() => setShowAddModal(false)} className="opacity-30 hover:opacity-100">✕</button>
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/70 backdrop-blur-xl animate-in fade-in duration-500">
+                    <div className={`w-full max-w-md p-10 rounded-[4rem] border shadow-[0_48px_80px_-20px_rgba(0,0,0,0.6)] transform animate-in slide-in-from-bottom-12 duration-700 ${cardClasses}`}>
+                        <div className="flex justify-between items-start mb-10">
+                            <div>
+                                <h3 className="text-2xl font-black italic tracking-tighter uppercase">Novo Contato</h3>
+                                <p className="text-[10px] font-black uppercase tracking-widest opacity-20">Expanda sua rede</p>
+                            </div>
+                            <button onClick={() => setShowAddModal(false)} className="w-10 h-10 flex items-center justify-center opacity-30 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-all text-xl">✕</button>
                         </div>
 
-                        <div className="space-y-6">
+                        <div className="space-y-10">
                             {/* Photo Upload */}
-                            <div className="flex flex-col items-center gap-4">
-                                <div className={`w-24 h-24 rounded-3xl overflow-hidden border-2 ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-100'}`}>
+                            <div className="flex flex-col items-center gap-6">
+                                <div className={`w-32 h-32 rounded-[2.5rem] overflow-hidden border-4 shadow-2xl transition-all hover:scale-105 cursor-pointer ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-white'}`}>
                                     {newContact.image ? (
                                         <img src={newContact.image} className="w-full h-full object-cover" />
                                     ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-3xl opacity-20">📸</div>
+                                        <div className="w-full h-full flex items-center justify-center text-4xl opacity-10">📸</div>
                                     )}
                                 </div>
                                 <input id="contact-photo" type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-                                <label htmlFor="contact-photo" className="text-[10px] font-bold uppercase tracking-widest text-blue-500 cursor-pointer hover:underline">
-                                    Enviar Foto
+                                <label htmlFor="contact-photo" className="px-6 py-2 bg-blue-600/10 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-widest cursor-pointer hover:bg-blue-600 hover:text-white transition-all">
+                                    Upload Avatar
                                 </label>
                             </div>
 
-                            <div className="space-y-4">
+                            <div className="space-y-6">
                                 <div>
-                                    <label className="text-[10px] font-bold uppercase tracking-widest opacity-40 mb-2 block">Nome</label>
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-blue-600 block mb-3 ml-4">Identificação</label>
                                     <input
                                         type="text"
+                                        placeholder="Nome ou Alias"
                                         value={newContact.name}
                                         onChange={e => setNewContact(prev => ({ ...prev, name: e.target.value }))}
-                                        className={`w-full p-4 rounded-2xl border text-sm ${isDark ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-100'}`}
-                                        placeholder="Ex: João Silva"
+                                        className={`w-full p-6 rounded-[2rem] border text-sm font-bold outline-none transition-all ${inputClasses}`}
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-[10px] font-bold uppercase tracking-widest opacity-40 mb-2 block">Número (8 dígitos)</label>
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-blue-600 block mb-3 ml-4">Frequência Digital (8 Dígitos)</label>
                                     <input
                                         type="text"
                                         maxLength={8}
+                                        placeholder="00000000"
                                         value={newContact.number}
                                         onChange={e => setNewContact(prev => ({ ...prev, number: e.target.value.replace(/\D/g, '') }))}
-                                        className={`w-full p-4 rounded-2xl border text-sm font-mono tracking-widest ${isDark ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-100'}`}
-                                        placeholder="00000000"
+                                        className={`w-full p-6 rounded-[2rem] border text-sm font-black tracking-[0.5em] outline-none text-center transition-all ${inputClasses}`}
                                     />
                                 </div>
-                                <div className="grid grid-cols-2 gap-3">
+                                <div className="grid grid-cols-2 gap-4">
                                     <button
                                         onClick={() => setNewContact(prev => ({ ...prev, type: 'user' }))}
-                                        className={`p-3 rounded-2xl text-[10px] font-bold uppercase tracking-widest border transition-all ${newContact.type === 'user' ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : isDark ? 'bg-white/5 border-white/5' : 'bg-white border-slate-100'}`}
+                                        className={`py-5 rounded-[2rem] text-[10px] font-black uppercase tracking-widest border transition-all ${newContact.type === 'user' ? 'bg-black dark:bg-white text-white dark:text-black shadow-2xl' : 'border-inherit opacity-40 hover:opacity-100'}`}
                                     >
-                                        Usuário
+                                        Humano
                                     </button>
                                     <button
                                         onClick={() => setNewContact(prev => ({ ...prev, type: 'ai' }))}
-                                        className={`p-3 rounded-2xl text-[10px] font-bold uppercase tracking-widest border transition-all ${newContact.type === 'ai' ? 'bg-pink-600 border-pink-600 text-white shadow-lg' : isDark ? 'bg-white/5 border-white/5' : 'bg-white border-slate-100'}`}
+                                        className={`py-5 rounded-[2rem] text-[10px] font-black uppercase tracking-widest border transition-all ${newContact.type === 'ai' ? 'bg-pink-600 border-pink-600 text-white shadow-2xl shadow-pink-600/30' : 'border-inherit opacity-40 hover:opacity-100'}`}
                                     >
-                                        I.A.
+                                        Artificial
                                     </button>
                                 </div>
                             </div>
@@ -329,9 +331,9 @@ export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPar
                             <button
                                 onClick={handleManualCreate}
                                 disabled={loading}
-                                className="w-full py-4 bg-blue-600 text-white rounded-[1.5rem] font-bold uppercase tracking-widest shadow-xl shadow-blue-500/20 hover:scale-105 active:scale-95 transition-all text-xs"
+                                className="w-full py-6 bg-blue-600 text-white rounded-[2.5rem] font-black uppercase tracking-[0.3em] shadow-2xl shadow-blue-500/40 hover:scale-[1.02] active:scale-95 transition-all text-[11px] disabled:opacity-50"
                             >
-                                {loading ? "Salvando..." : "Criar Contato"}
+                                {loading ? "Sincronizando..." : "Estabelecer Conexão"}
                             </button>
                         </div>
                     </div>

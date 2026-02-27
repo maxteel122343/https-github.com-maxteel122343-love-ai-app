@@ -20,11 +20,9 @@ export const QuickChatTab: React.FC<QuickChatTabProps> = ({ currentUser, profile
     const [showAddSelector, setShowAddSelector] = useState(false);
 
     const isLight = !isDark;
-    const bgClass = isLight ? "bg-[#f9f9fb]" : "bg-[#0b0c10]";
-    const cardBg = isLight ? "bg-white" : "bg-[#15181e]";
-    const borderClass = isLight ? "border-slate-100" : "border-white/5";
+    const cardClasses = isDark ? "bg-[#15181e] border-white/5" : "bg-white border-slate-100 shadow-sm";
+    const itemClasses = isDark ? "hover:bg-white/5 border-white/5 transition-colors" : "hover:bg-slate-50 border-slate-100 transition-colors";
     const textMain = isLight ? "text-slate-900" : "text-white";
-    const textDim = isLight ? "text-slate-400" : "text-slate-500";
 
     useEffect(() => {
         if (currentUser) {
@@ -89,220 +87,207 @@ export const QuickChatTab: React.FC<QuickChatTabProps> = ({ currentUser, profile
     const recentList = filteredContacts.filter(c => !pinnedIds.includes(c.id));
 
     return (
-        <div className={`w-full h-full flex flex-col font-sans ${bgClass} animate-in fade-in duration-700`}>
+        <div className="w-full flex flex-col gap-8 animate-in fade-in slide-in-from-bottom-6 duration-700">
+            {/* Header */}
+            <div className="px-1 flex justify-between items-end">
+                <div>
+                    <h2 className="text-3xl font-black tracking-tighter italic uppercase">Mensagens</h2>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] opacity-30">Conexões Ativas & Recentes</p>
+                </div>
+            </div>
+
             {/* Search Top Bar */}
-            <div className={`px-4 pt-6 pb-4 ${isLight ? 'bg-white/80' : 'bg-black/20'} backdrop-blur-xl sticky top-0 z-20`}>
-                <div className={`flex items-center gap-3 px-4 py-3 rounded-full ${isLight ? 'bg-slate-100/80 shadow-inner' : 'bg-white/5 border border-white/5'}`}>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            <div className="relative group">
+                <input
+                    type="text"
+                    placeholder="BUSCAR CONVERSA..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className={`w-full p-6 pr-14 rounded-[2rem] border text-xs font-black tracking-[0.2em] transition-all duration-300 shadow-sm outline-none ${isDark ? 'bg-white/5 border-white/5 focus:bg-white/10' : 'bg-slate-50 border-slate-100 focus:bg-white focus:border-blue-500'}`}
+                />
+                <div className="absolute right-6 top-1/2 -translate-y-1/2 flex items-center gap-3 opacity-30">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                     </svg>
-                    <input
-                        type="text"
-                        placeholder="Buscar"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="bg-transparent border-none focus:outline-none text-[15px] w-full font-normal tracking-tight placeholder:opacity-50"
-                    />
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                 </div>
             </div>
 
-            {/* Content Area */}
-            <div className="flex-1 overflow-y-auto no-scrollbar">
+            {/* Content List */}
+            <div className={`rounded-[3rem] border overflow-hidden ${cardClasses}`}>
 
-                {/* Main AI Partner (Professional iOS look) */}
+                {/* Main AI Partner (Priority) */}
                 <div
                     onClick={() => onCallPartner(profile)}
-                    className={`flex items-center gap-4 px-6 py-5 cursor-pointer relative ${isLight ? 'hover:bg-slate-50' : 'hover:bg-white/5'} transition-colors border-b ${borderClass}`}
+                    className={`flex items-center gap-5 p-6 cursor-pointer relative ${itemClasses} border-b last:border-0 group`}
                 >
                     <div className="relative flex-shrink-0">
-                        <div className="w-[72px] h-[72px] rounded-full overflow-hidden shadow-md ring-2 ring-white dark:ring-slate-800">
+                        <div className="w-16 h-16 rounded-[1.5rem] overflow-hidden shadow-xl ring-2 ring-blue-500/20 group-hover:scale-105 transition-transform duration-500">
                             {profile.image ? (
                                 <img src={profile.image} className="w-full h-full object-cover" />
                             ) : (
-                                <div className="w-full h-full bg-slate-200 flex items-center justify-center text-4xl">👤</div>
+                                <div className="w-full h-full bg-blue-600/10 flex items-center justify-center text-3xl">👤</div>
                             )}
                         </div>
-                        {/* Status Dots and Badges */}
-                        <div className="absolute top-1 right-2 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-white dark:border-slate-900 shadow-sm" />
-                        <div className="absolute -bottom-1 -right-0.5 w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px] border-2 border-white dark:border-slate-900 shadow-md">
-                            ✓
-                        </div>
+                        <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-4 border-white dark:border-[#15181e] shadow-lg animate-pulse" />
                     </div>
 
-                    <div className="flex-1 min-w-0 pr-8">
-                        <div className="flex justify-between items-baseline mb-0.5">
-                            <h4 className={`font-bold text-[17px] tracking-tight truncate ${textMain}`}>
-                                {profile.name} <span className="text-emerald-400 text-[10px] ml-1">●</span>
+                    <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-baseline mb-1">
+                            <h4 className={`font-black text-base italic tracking-tighter uppercase ${textMain}`}>
+                                {profile.name} <span className="text-emerald-500 text-[10px] ml-1">●</span>
                             </h4>
-                            <span className="text-[12px] font-medium text-slate-400">Agora</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest opacity-20">Agora</span>
                         </div>
-                        <p className={`text-[14px] ${isLight ? 'text-slate-500' : 'text-slate-400'} line-clamp-1 mb-1 font-normal`}>
-                            Sentindo sua falta. 🖤
+                        <p className={`text-[13px] font-medium opacity-60 line-clamp-1 mb-1 italic`}>
+                            "Sentindo sua falta. Que tal uma ligação rápida?" 🖤
                         </p>
-                        <div className="flex items-center gap-1">
-                            <span className="text-[12px] opacity-40 font-medium">Relacionamento:</span>
-                            <span className={`text-[12px] font-bold ${getRelStatus(profile.relationshipScore).color}`}>
+                        <div className="flex items-center gap-2">
+                            <span className="text-[9px] font-black uppercase tracking-widest opacity-30">Status:</span>
+                            <span className={`text-[9px] font-black uppercase tracking-widest ${getRelStatus(profile.relationshipScore).color}`}>
                                 {getRelStatus(profile.relationshipScore).label}
                             </span>
                         </div>
                     </div>
 
-                    <button className="flex-shrink-0 w-11 h-11 rounded-full bg-[#007AFF] text-white flex items-center justify-center shadow-lg shadow-blue-500/30 hover:scale-105 active:scale-95 transition-all">
+                    <button className="flex-shrink-0 w-12 h-12 rounded-[1.25rem] bg-blue-600 text-white flex items-center justify-center shadow-xl shadow-blue-600/30 hover:scale-110 active:scale-95 transition-all">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 fill-white" viewBox="0 0 24 24">
                             <path d="M6.62 10.79a15.15 15.15 0 006.59 6.59l2.2-2.2a1 1 0 011.11-.27c1.12.44 2.33.68 3.58.68a1 1 0 011 1V20a1 1 0 01-1 1A17 17 0 013 4a1 1 0 011-1h3.5a1 1 0 011 1c0 1.25.24 2.46.68 3.58a1 1 0 01-.27 1.11z" />
                         </svg>
                     </button>
                 </div>
 
-                {/* Sub-List items exactly like image */}
+                {/* Sub-List (Pinned and Recents) */}
                 <div className="divide-y divide-inherit">
                     {/* Mock Julia */}
-                    <div className={`flex items-center gap-4 px-6 py-5 cursor-pointer relative ${isLight ? 'hover:bg-slate-50' : 'hover:bg-white/5'} transition-colors ${borderClass}`}>
+                    <div className={`flex items-center gap-5 p-6 cursor-pointer relative ${itemClasses} group`}>
                         <div className="relative flex-shrink-0">
-                            <div className="w-[72px] h-[72px] rounded-full overflow-hidden shadow-sm">
+                            <div className="w-16 h-16 rounded-[1.5rem] overflow-hidden shadow-md group-hover:scale-105 transition-transform duration-500">
                                 <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop" className="w-full h-full object-cover grayscale-[0.2]" />
                             </div>
-                            <div className="absolute -bottom-1 -right-0.5 w-6 h-6 rounded-full bg-blue-400 text-white flex items-center justify-center text-[10px] border-2 border-white dark:border-slate-900 shadow-md">
+                            <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-blue-400 text-white flex items-center justify-center text-[10px] border-4 border-white dark:border-[#15181e] shadow-lg">
                                 ❄️
                             </div>
                         </div>
                         <div className="flex-1 min-w-0">
-                            <div className="flex justify-between items-baseline mb-0.5">
-                                <h4 className={`font-bold text-[17px] tracking-tight truncate ${textMain}`}>Julia</h4>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-[10px] opacity-20">📡</span>
-                                    <span className="text-[12px] font-medium text-slate-400">20:35</span>
-                                </div>
+                            <div className="flex justify-between items-baseline mb-1">
+                                <h4 className={`font-black text-base italic tracking-tighter uppercase ${textMain}`}>Julia</h4>
+                                <span className="text-[10px] font-black uppercase tracking-widest opacity-20">20:35</span>
                             </div>
-                            <p className={`text-[14px] ${isLight ? 'text-slate-400' : 'text-slate-500'} line-clamp-1 mb-1`}>Ei, por que desapareceu?</p>
-                            <span className="text-[12px] font-bold text-blue-500 opacity-60">Esfriando</span>
+                            <p className={`text-[13px] font-medium opacity-40 line-clamp-1 mb-1`}>Ei, por que desapareceu? O silêncio dói...</p>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-blue-500 opacity-60">Esfriando</span>
                         </div>
-                        <div className="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-slate-700 ml-2" />
+                        <div className="w-2.5 h-2.5 rounded-full bg-blue-600/20 ml-2" />
                     </div>
 
                     {/* Mock Mariana */}
-                    <div className={`flex items-center gap-4 px-6 py-5 cursor-pointer relative ${isLight ? 'hover:bg-slate-50' : 'hover:bg-white/5'} transition-colors ${borderClass}`}>
+                    <div className={`flex items-center gap-5 p-6 cursor-pointer relative ${itemClasses} group`}>
                         <div className="relative flex-shrink-0">
-                            <div className="w-[72px] h-[72px] rounded-full overflow-hidden shadow-sm">
+                            <div className="w-16 h-16 rounded-[1.5rem] overflow-hidden shadow-md group-hover:scale-105 transition-transform duration-500">
                                 <img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&h=150&fit=crop" className="w-full h-full object-cover" />
                             </div>
-                            <div className="absolute -bottom-1 -right-0.5 w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px] border-2 border-white dark:border-slate-900 shadow-md">
+                            <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px] border-4 border-white dark:border-[#15181e] shadow-lg">
                                 ✓
                             </div>
                         </div>
                         <div className="flex-1 min-w-0">
-                            <div className="flex justify-between items-baseline mb-0.5">
-                                <h4 className={`font-bold text-[17px] tracking-tight truncate ${textMain}`}>Mariana</h4>
-                                <span className="text-[12px] font-medium text-slate-400">Hoje</span>
+                            <div className="flex justify-between items-baseline mb-1">
+                                <h4 className={`font-black text-base italic tracking-tighter uppercase ${textMain}`}>Mariana</h4>
+                                <span className="text-[10px] font-black uppercase tracking-widest opacity-20">Hoje</span>
                             </div>
-                            <p className={`text-[14px] ${isLight ? 'text-slate-400' : 'text-slate-500'} line-clamp-1 mb-1`}>Preciso do seu conselho.</p>
-                            <span className="text-[12px] font-bold text-emerald-500/80">Rel. estável</span>
+                            <p className={`text-[13px] font-medium opacity-40 line-clamp-1 mb-1`}>Preciso do seu conselho para uma coisa.</p>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500/80">Rel. estável</span>
                         </div>
-                        <div className="w-6 h-6 rounded-full bg-[#007AFF] text-white flex items-center justify-center text-[11px] font-bold shadow-md">2</div>
-                    </div>
-
-                    {/* Mock Beatriz */}
-                    <div className={`flex items-center gap-4 px-6 py-5 cursor-pointer relative ${isLight ? 'hover:bg-slate-50' : 'hover:bg-white/5'} transition-colors ${borderClass}`}>
-                        <div className="relative flex-shrink-0">
-                            <div className="w-[72px] h-[72px] rounded-full overflow-hidden shadow-sm">
-                                <img src="https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150&h=150&fit=crop" className="w-full h-full object-cover" />
-                            </div>
-                            <div className="absolute -bottom-1 -right-0.5 w-6 h-6 rounded-full bg-orange-400 border-2 border-white dark:border-slate-900 shadow-md" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <div className="flex justify-between items-baseline mb-0.5">
-                                <h4 className={`font-bold text-[17px] tracking-tight truncate ${textMain}`}>Beatriz</h4>
-                                <span className="text-[12px] font-medium text-slate-400">Ontem</span>
-                            </div>
-                            <p className={`text-[14px] ${isLight ? 'text-slate-400' : 'text-slate-500'} line-clamp-1 mb-1`}>Amei nossa ligação mais cedo.</p>
-                            <span className="text-[12px] font-bold text-orange-400/80">Aquecendo</span>
-                        </div>
-                        <div className="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-slate-700 ml-2" />
+                        <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-black shadow-lg">2</div>
                     </div>
 
                     {/* Real Dynamic Contacts */}
-                    {recentList.map((contact) => (
+                    {pinnedList.map((contact) => (
                         <div
                             key={contact.id}
                             onClick={() => handleCallContact(contact)}
-                            className={`flex items-center gap-4 px-6 py-5 cursor-pointer relative ${isLight ? 'hover:bg-slate-50' : 'hover:bg-white/5'} transition-colors ${borderClass}`}
+                            className={`flex items-center gap-5 p-6 cursor-pointer relative ${itemClasses} group`}
                         >
                             <div className="relative flex-shrink-0">
-                                <div className="w-[72px] h-[72px] rounded-full overflow-hidden shadow-sm bg-slate-100">
+                                <div className="w-16 h-16 rounded-[1.5rem] overflow-hidden shadow-md group-hover:scale-105 transition-transform duration-500 bg-black/5">
                                     {contact.profile?.avatar_url ? (
                                         <img src={contact.profile.avatar_url} className="w-full h-full object-cover" />
                                     ) : (
-                                        <div className="w-full h-full bg-slate-200 flex items-center justify-center text-3xl">👤</div>
+                                        <div className="w-full h-full flex items-center justify-center text-3xl opacity-20">👤</div>
                                     )}
                                 </div>
-                                <div className={`absolute -bottom-1 -right-0.5 w-6 h-6 rounded-full ${contact.is_ai_contact ? 'bg-pink-500' : 'bg-blue-500'} text-white flex items-center justify-center text-[10px] border-2 border-white dark:border-slate-900 shadow-md`}>
+                                <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full ${contact.is_ai_contact ? 'bg-pink-500' : 'bg-blue-500'} text-white flex items-center justify-center text-[10px] border-4 border-white dark:border-[#15181e] shadow-lg`}>
                                     {contact.is_ai_contact ? '⚡' : '👤'}
                                 </div>
                             </div>
                             <div className="flex-1 min-w-0">
-                                <div className="flex justify-between items-baseline mb-0.5">
-                                    <h4 className={`font-bold text-[17px] tracking-tight truncate ${textMain}`}>{contact.alias || contact.profile?.display_name}</h4>
-                                    <span className="text-[12px] font-medium text-slate-400">Recente</span>
+                                <div className="flex justify-between items-baseline mb-1">
+                                    <h4 className={`font-black text-base italic tracking-tighter uppercase ${textMain}`}>{contact.alias || contact.profile?.display_name}</h4>
+                                    <span className="text-[10px] font-black uppercase tracking-widest opacity-20">Fixado</span>
                                 </div>
-                                <p className={`text-[14px] ${isLight ? 'text-slate-400' : 'text-slate-500'} line-clamp-1 mb-1 font-normal opacity-60 italic`}>
-                                    Toque para iniciar chamada...
+                                <p className={`text-[13px] font-medium opacity-30 line-clamp-1 mb-1 italic`}>
+                                    Toque para iniciar conexão...
                                 </p>
-                                <span className="text-[12px] font-bold text-emerald-500/80">Pronta</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500/80">Pronta</span>
                             </div>
-                            <div className="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-slate-700 ml-2" />
+                            <button onClick={(e) => togglePin(contact.id, e)} className="text-emerald-500 text-xs">📌</button>
                         </div>
                     ))}
                 </div>
 
                 {loading && (
-                    <div className="p-12 text-center opacity-20 animate-pulse text-2xl font-bold tracking-widest italic">LOADING...</div>
+                    <div className="flex flex-col items-center justify-center py-20 gap-3">
+                        <div className="w-8 h-8 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />
+                        <p className="text-[10px] font-black uppercase tracking-widest opacity-20">Sincronizando Mensagens...</p>
+                    </div>
                 )}
             </div>
 
-            {/* Float FAB exactly like in the drawing */}
+            {/* Custom Plus Button (FAB from Drawing) */}
             <div className="fixed bottom-32 right-8 z-50">
                 <button
                     onClick={() => setShowAddSelector(true)}
-                    className="w-16 h-14 bg-transparent border-none outline-none group flex items-center justify-center"
+                    className="w-14 h-20 bg-transparent border-none outline-none group flex items-center justify-center"
                 >
                     <div className="relative">
-                        {/* Custom hand-drawn style plus button from image */}
                         <svg width="40" height="60" viewBox="0 0 40 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M20 5V55" stroke="#0000FF" strokeWidth="4" strokeLinecap="round" />
-                            <path d="M5 45C5 45 15 45 40 45" stroke="#0000FF" strokeWidth="4" strokeLinecap="round" />
+                            <path d="M20 5V55" stroke={isLight ? "#2563eb" : "#3b82f6"} strokeWidth="5" strokeLinecap="round" className="drop-shadow-lg" />
+                            <path d="M5 45C5 45 15 45 40 45" stroke={isLight ? "#2563eb" : "#3b82f6"} strokeWidth="5" strokeLinecap="round" className="drop-shadow-lg" />
                         </svg>
-                        <div className="absolute inset-0 bg-blue-600/5 blur-xl group-hover:bg-blue-600/10 transition-all rounded-full" />
+                        <div className="absolute inset-0 bg-blue-600/10 blur-2xl group-hover:bg-blue-600/20 transition-all rounded-full" />
                     </div>
                 </button>
             </div>
 
-            {/* Selector Modal */}
+            {/* Pin Selector Modal */}
             {showAddSelector && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-md animate-in fade-in duration-300">
-                    <div className={`w-full max-w-sm p-8 rounded-[3rem] border shadow-2xl ${cardBg} animate-in scale-in-95`}>
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className={`text-[20px] font-bold font-sans tracking-tight ${textMain}`}>Fixar no Menu</h3>
-                            <button onClick={() => setShowAddSelector(false)} className="w-8 h-8 rounded-full flex items-center justify-center bg-slate-100 dark:bg-white/5 opacity-50 hover:opacity-100">✕</button>
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/60 backdrop-blur-xl animate-in fade-in duration-300">
+                    <div className={`w-full max-w-sm p-10 rounded-[4rem] border shadow-[0_48px_80px_-20px_rgba(0,0,0,0.6)] animate-in slide-in-from-bottom-8 duration-500 ${cardClasses}`}>
+                        <div className="flex justify-between items-start mb-8">
+                            <div>
+                                <h3 className="text-2xl font-black italic tracking-tighter uppercase">Favoritos</h3>
+                                <p className="text-[10px] font-black uppercase tracking-widest opacity-20">Fixar na interface</p>
+                            </div>
+                            <button onClick={() => setShowAddSelector(false)} className="w-10 h-10 flex items-center justify-center opacity-30 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-all text-xl">✕</button>
                         </div>
-                        <div className="max-h-80 overflow-y-auto space-y-2 no-scrollbar px-1">
-                            {contacts.length === 0 && <p className="text-center py-12 opacity-30 text-sm italic">Sua lista está vazia.</p>}
+                        <div className="max-h-80 overflow-y-auto space-y-3 no-scrollbar pr-2">
+                            {contacts.length === 0 && <p className="text-center py-12 opacity-20 italic font-black uppercase tracking-widest text-[10px]">Lista de contatos vazia</p>}
                             {contacts.map(c => (
                                 <button
                                     key={c.id}
                                     onClick={(e) => { togglePin(c.id, e); setShowAddSelector(false); }}
-                                    className={`w-full flex items-center gap-4 p-4 rounded-[1.8rem] transition-all ${isLight ? 'hover:bg-slate-50' : 'hover:bg-white/5'} border ${borderClass}`}
+                                    className={`w-full flex items-center gap-4 p-5 rounded-[2rem] transition-all border ${pinnedIds.includes(c.id) ? 'border-blue-600 bg-blue-600/5' : 'border-inherit hover:bg-black/5 dark:hover:bg-white/5'}`}
                                 >
-                                    <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-100 flex-shrink-0">
+                                    <div className="w-12 h-12 rounded-[1.25rem] overflow-hidden bg-black/5 flex-shrink-0">
                                         {c.profile?.avatar_url && <img src={c.profile.avatar_url} className="w-full h-full object-cover" />}
                                     </div>
                                     <div className="flex-1 text-left min-w-0">
-                                        <p className={`font-bold text-[15px] tracking-tight truncate ${textMain}`}>{c.alias || c.profile?.display_name}</p>
-                                        <p className="text-[11px] opacity-40 uppercase tracking-widest font-bold">{c.is_ai_contact ? 'I.A.' : 'Usuário'}</p>
+                                        <p className={`font-black text-[14px] italic tracking-tight truncate uppercase ${textMain}`}>{c.alias || c.profile?.display_name}</p>
+                                        <p className="text-[9px] font-black opacity-30 uppercase tracking-widest">{c.is_ai_contact ? 'I.A.' : 'Humano'}</p>
                                     </div>
-                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center ${pinnedIds.includes(c.id) ? 'bg-emerald-500 text-white' : 'bg-slate-100 dark:bg-white/10 text-slate-400'}`}>
+                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${pinnedIds.includes(c.id) ? 'bg-blue-600 text-white shadow-lg' : 'bg-black/5 dark:bg-white/10 text-slate-400'}`}>
                                         {pinnedIds.includes(c.id) ? '✓' : '+'}
                                     </div>
                                 </button>

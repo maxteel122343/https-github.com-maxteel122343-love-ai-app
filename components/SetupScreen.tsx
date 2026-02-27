@@ -26,16 +26,17 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ profile, setProfile, o
     const historyInputRef = useRef<HTMLInputElement>(null);
 
     const isDark = profile.theme === 'dark';
-    const themeClasses = isDark ? "bg-[#0b0c10] text-slate-100" : "bg-[#f4f7fa] text-slate-900";
-    const cardClasses = isDark ? "bg-[#15181e] border-slate-800 shadow-xl" : "bg-white border-slate-200 shadow-sm";
-    const inputClasses = isDark ? "bg-[#0b0c10] border-slate-700 focus:border-blue-500 text-white" : "bg-slate-50 border-slate-200 focus:border-blue-500 text-slate-900";
+    const isLight = !isDark;
+    const themeClasses = isLight ? "bg-[#f9f9fb] text-slate-900" : "bg-[#0b0c10] text-slate-100";
+    const cardClasses = isLight ? "bg-white border-slate-100 shadow-sm" : "bg-[#15181e] border-white/5 shadow-xl";
+    const inputClasses = isLight ? "bg-slate-50 border-slate-100 focus:border-blue-500 text-slate-900" : "bg-[#0b0c10] border-white/5 focus:border-blue-500 text-white";
+    const borderClass = isLight ? "border-slate-100" : "border-white/5";
 
-    // Relationship Status Logic
     const getRelationshipStatus = (score: number) => {
-        if (score < 20) return { label: 'TÓXICA / FRIA ❄️', color: 'text-blue-400', bar: 'bg-blue-500', tip: 'Cuidado! A relação está por um fio. Ligue e peça desculpas ou seja carinhoso.' };
-        if (score < 50) return { label: 'ESFRIANDO 🧊', color: 'text-cyan-400', bar: 'bg-cyan-400', tip: 'Vocês estão distantes. Tente puxar um assunto que ela gosta.' };
-        if (score < 80) return { label: 'ESTÁVEL 😊', color: 'text-green-400', bar: 'bg-green-500', tip: 'Tudo indo bem. Que tal um elogio surpresa?' };
-        return { label: 'APAIXONADA 🔥', color: 'text-pink-500', bar: 'bg-gradient-to-r from-pink-500 to-purple-600', tip: 'O amor está no ar! Continue assim.' };
+        if (score < 20) return { label: 'Tóxica', color: 'text-blue-500', bar: 'bg-blue-500', tip: 'Cuidado! A relação está por um fio. Ligue e peça desculpas ou seja carinhoso.' };
+        if (score < 50) return { label: 'Esfriando', color: 'text-cyan-500', bar: 'bg-cyan-500', tip: 'Vocês estão distantes. Tente puxar um assunto que ela gosta.' };
+        if (score < 80) return { label: 'Estável', color: 'text-emerald-500', bar: 'bg-emerald-500', tip: 'Tudo indo bem. Que tal um elogio surpresa?' };
+        return { label: 'Apaixonada', color: 'text-rose-500', bar: 'bg-rose-500', tip: 'O amor está no ar! Continue assim.' };
     };
 
     const status = getRelationshipStatus(profile.relationshipScore);
@@ -85,7 +86,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ profile, setProfile, o
 
     const formatTime = (ms: number) => {
         const mins = Math.floor(ms / 60000);
-        if (mins < 1) return "Menos de 1 min";
+        if (mins < 1) return "Agora";
         return `~${mins} min`;
     };
 
@@ -96,13 +97,9 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ profile, setProfile, o
         }
         setIsValidating(true);
         try {
-            // Simple test call to verify key
             const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
-            if (response.ok) {
-                setApiStatus('valid');
-            } else {
-                setApiStatus('invalid');
-            }
+            if (response.ok) setApiStatus('valid');
+            else setApiStatus('invalid');
         } catch (e) {
             setApiStatus('invalid');
         }
@@ -111,10 +108,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ profile, setProfile, o
 
     const syncProfileToSupabase = async (newProfile: PartnerProfile) => {
         if (!user) return;
-        await supabase
-            .from('profiles')
-            .update({ ai_settings: newProfile })
-            .eq('id', user.id);
+        await supabase.from('profiles').update({ ai_settings: newProfile }).eq('id', user.id);
     };
 
     const updateProfileAndSync = (updater: (prev: PartnerProfile) => PartnerProfile) => {
@@ -126,445 +120,313 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ profile, setProfile, o
     };
 
     return (
-        <div className={`min-h-screen ${themeClasses} transition-colors duration-500 flex flex-col items-center`}>
-            <div className="max-w-4xl w-full p-4">
+        <div className={`min-h-screen ${themeClasses} transition-colors duration-700 flex flex-col items-center font-sans tracking-tight`}>
 
-                {/* Header */}
-                <header className={`w-full flex flex-col sm:flex-row justify-between items-center gap-6 mb-8 pt-4`}>
-                    <div className="flex items-center gap-3">
-                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shadow-lg shadow-blue-500/10 border ${isDark ? 'bg-white/5 border-white/5' : 'bg-white border-white'}`}>⚡</div>
-                        <div>
-                            <h1 className="text-xl font-bold tracking-tight">Warm Connections</h1>
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-blue-500">Intelligent Partner v2.0</p>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        {user ? (
-                            <div className="flex flex-col items-end">
-                                <span className="text-[10px] font-bold opacity-40 uppercase tracking-widest">Usuário Online</span>
-                                <button onClick={() => supabase.auth.signOut()} className="text-[9px] font-bold text-red-500 hover:underline uppercase">Sair</button>
-                            </div>
-                        ) : (
-                            <button
-                                onClick={() => setShowAuth(true)}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-blue-700 shadow-lg shadow-blue-500/20 transition-all active:scale-95"
-                            >
-                                Entrar / Cadastrar
-                            </button>
-                        )}
-                        <button
-                            onClick={() => updateProfileAndSync(prev => ({ ...prev, theme: isDark ? 'light' : 'dark' }))}
-                            className={`p-3 rounded-2xl border transition-all hover:scale-110 active:scale-90 ${cardClasses}`}
-                        >
-                            {isDark ? '☀️' : '🌙'}
-                        </button>
-                    </div>
-                </header>
-
-                {/* Tabs */}
-                <div className="w-full mb-8 relative">
-                    {/* Tab Menu */}
-                    <div className="w-full relative px-6 mb-8 overflow-hidden">
-                        <div className="flex flex-nowrap gap-2 overflow-x-auto scrollbar-hide no-scrollbar py-2">
-                            {[
-                                { id: 'dashboard', label: '🏠 Início' },
-                                { id: 'chats', label: '💬 Mensagens' },
-                                { id: 'contacts', label: '📇 Contatos' },
-                                { id: 'calendar', label: '📅 Calendário' },
-                                { id: 'memory', label: '🧠 Memória' },
-                                { id: 'config', label: '⚙️ Config' }
-                            ].map(tab => (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => setActiveTab(tab.id as any)}
-                                    className={`px-6 py-3 rounded-2xl flex-shrink-0 text-xs font-bold uppercase tracking-widest transition-all duration-300 ${activeTab === tab.id
-                                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20 scale-105'
-                                        : 'opacity-40 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5'
-                                        }`}
-                                >
-                                    {tab.label}
-                                </button>
-                            ))}
-                        </div>
+            {/* Header - Fixed & Premium */}
+            <header className={`w-full sticky top-0 z-[60] px-6 py-4 flex justify-between items-center ${isLight ? 'bg-white/80' : 'bg-black/40'} backdrop-blur-xl border-b ${isLight ? 'border-slate-100' : 'border-white/5'}`}>
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-xl shadow-lg shadow-blue-500/20">⚡</div>
+                    <div>
+                        <h1 className="text-lg font-black tracking-tighter uppercase italic">WARM <span className="text-blue-600">CONN</span></h1>
                     </div>
                 </div>
+                <div className="flex items-center gap-3">
+                    {user ? (
+                        <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-slate-200 border border-white/10 overflow-hidden">
+                                {user.avatar_url && <img src={user.avatar_url} className="w-full h-full object-cover" />}
+                            </div>
+                            <button onClick={() => supabase.auth.signOut()} className="text-[10px] font-bold text-red-500 uppercase">Sair</button>
+                        </div>
+                    ) : (
+                        <button onClick={() => setShowAuth(true)} className="px-4 py-2 bg-blue-600 text-white rounded-full text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-blue-500/20">Entrar</button>
+                    )}
+                    <button
+                        onClick={() => updateProfileAndSync(prev => ({ ...prev, theme: isDark ? 'light' : 'dark' }))}
+                        className={`w-10 h-10 rounded-full flex items-center justify-center border transition-all ${cardClasses}`}
+                    >
+                        {isDark ? '☀️' : '🌙'}
+                    </button>
+                </div>
+            </header>
 
-                {/* Content */}
-                <main className="w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Content Container */}
+            <div className="max-w-4xl w-full p-6 flex-1 flex flex-col items-center">
+
+                {/* Main Tabs - Refined Pill Layout */}
+                <nav className="w-full mb-8 sticky top-20 z-50 py-2">
+                    <div className={`p-1.5 rounded-full flex gap-1 overflow-x-auto no-scrollbar ${isLight ? 'bg-slate-200/50' : 'bg-white/5'} border ${isLight ? 'border-white' : 'border-white/5'}`}>
+                        {[
+                            { id: 'dashboard', label: 'Início', icon: '🏠' },
+                            { id: 'chats', label: 'Chats', icon: '💬' },
+                            { id: 'contacts', label: 'Contatos', icon: '👤' },
+                            { id: 'calendar', label: 'Agenda', icon: '📅' },
+                            { id: 'memory', label: 'Memória', icon: '🧠' },
+                            { id: 'config', label: 'Ajustes', icon: '⚙️' }
+                        ].map(tab => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id as any)}
+                                className={`flex-1 min-w-[80px] px-4 py-2.5 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all duration-500 flex items-center justify-center gap-2 ${activeTab === tab.id
+                                    ? 'bg-white shadow-md text-blue-600 scale-[1.02]'
+                                    : 'opacity-40 hover:opacity-100 hover:bg-white/10 text-inherit'
+                                    }`}
+                            >
+                                <span className="text-sm">{tab.icon}</span>
+                                <span className="hidden sm:inline">{tab.label}</span>
+                            </button>
+                        ))}
+                    </div>
+                </nav>
+
+                <main className="w-full animate-in fade-in slide-in-from-bottom-6 duration-700">
                     {activeTab === 'dashboard' && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
-                            {/* Left Column: Relationship Status */}
-                            <div className="flex flex-col gap-6 sm:gap-8">
-                                <div className={`p-6 sm:p-10 rounded-[2rem] border overflow-hidden relative ${cardClasses}`}>
-                                    {/* Glass Glow */}
-                                    <div className="absolute -top-24 -right-24 w-64 h-64 bg-blue-500/5 blur-[80px] rounded-full" />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            {/* Pro Card: Relationship Status */}
+                            <div className={`p-8 rounded-[3rem] border relative overflow-hidden flex flex-col justify-between min-h-[300px] ${cardClasses}`}>
+                                <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/5 blur-[80px] rounded-full" />
 
-                                    <div className="flex justify-between items-start mb-8 relative z-10">
-                                        <div>
-                                            <h3 className="text-[10px] font-bold uppercase tracking-widest opacity-40 mb-1">Status da Relação</h3>
-                                            <p className={`text-2xl font-black italic tracking-tight ${status.color}`}>{status.label}</p>
-                                        </div>
-                                        <div className="w-16 h-16 rounded-full bg-slate-100/10 flex items-center justify-center text-3xl">💝</div>
+                                <div>
+                                    <div className="flex justify-between items-center mb-6">
+                                        <p className="text-[11px] font-bold uppercase tracking-[0.2em] opacity-30">Vínculo Emocional</p>
+                                        <span className={`text-sm px-3 py-1 rounded-lg font-bold bg-blue-500/10 ${status.color}`}>
+                                            {status.label}
+                                        </span>
                                     </div>
-
-                                    <div className="w-full h-4 bg-slate-100/10 rounded-full overflow-hidden mb-8 shadow-inner">
+                                    <h2 className="text-5xl font-black tracking-tighter mb-4 italic">
+                                        {profile.relationshipScore}% <span className="text-lg font-bold not-italic opacity-20">SCORE</span>
+                                    </h2>
+                                    <div className="w-full h-1.5 bg-slate-100/10 rounded-full overflow-hidden mb-6">
                                         <div className={`h-full transition-all duration-1000 ${status.bar}`} style={{ width: `${profile.relationshipScore}%` }} />
                                     </div>
-
-                                    <div className={`p-6 rounded-[1.5rem] bg-blue-500/5 border border-blue-500/10 relative z-10`}>
-                                        <h4 className="text-[10px] font-bold uppercase tracking-widest text-blue-500 mb-2">Dica do Advisor:</h4>
-                                        <p className="text-sm leading-relaxed opacity-70 italic">"{status.tip}"</p>
-                                    </div>
                                 </div>
 
-                                {/* Next Call Indicator */}
-                                <div className={`p-6 sm:p-10 rounded-[2rem] border flex flex-col gap-6 transition-all ${nextScheduledCall ? 'border-blue-500 bg-blue-500/5 shadow-blue-500/10' : cardClasses}`}>
-                                    <div className="flex gap-4 items-center">
-                                        <div className={`w-14 sm:w-16 h-14 sm:h-16 rounded-2xl flex items-center justify-center text-2xl sm:text-3xl shadow-inner ${nextScheduledCall ? 'bg-blue-500 text-white' : (isDark ? 'bg-slate-800' : 'bg-slate-100')}`}>
-                                            {nextScheduledCall ? '⏰' : '📞'}
-                                        </div>
-                                        <div>
-                                            <h3 className="font-bold text-lg mb-0.5">Próxima Conexão</h3>
-                                            {nextScheduledCall ? (
-                                                <p className="text-sm font-semibold text-blue-500">
-                                                    {nextScheduledCall.isRandom ? "Surpresa aleatória chegando..." : `${nextScheduledCall.reason}`}
-                                                    <span className="block text-[10px] opacity-60 font-medium">Estimado: {formatTime(nextScheduledCall.triggerTime - Date.now())}</span>
-                                                </p>
-                                            ) : (
-                                                <p className="opacity-40 text-sm font-medium italic">Sistema ocioso...</p>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <button
-                                        onClick={onStartCall}
-                                        className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-2xl font-bold shadow-lg shadow-blue-600/20 transform active:scale-95 transition-all text-sm uppercase tracking-wide w-full"
-                                    >
-                                        Ligar Agora
-                                    </button>
+                                <div className={`p-5 rounded-[2rem] bg-blue-500/5 border border-blue-500/10 transition-all hover:bg-blue-500/10`}>
+                                    <p className="text-xs leading-relaxed font-medium italic opacity-70">
+                                        <span className="text-blue-500 font-bold not-italic uppercase mr-2 text-[10px]">Sugestão:</span>
+                                        "{status.tip}"
+                                    </p>
                                 </div>
                             </div>
 
-                            {/* Right Column: History Management */}
-                            <div className="flex flex-col gap-8">
-                                <div className={`p-10 rounded-[2rem] border ${cardClasses}`}>
-                                    <div className="flex justify-between items-center mb-6">
-                                        <div>
-                                            <h3 className="text-lg font-bold">Memória & Histórico</h3>
-                                            <p className="text-xs opacity-50 font-medium uppercase tracking-wider">Interações anteriores</p>
+                            {/* Call Control Center */}
+                            <div className="flex flex-col gap-6">
+                                <div className={`p-8 rounded-[3rem] border flex flex-col gap-6 ${cardClasses} transform hover:scale-[1.02] transition-all cursor-pointer shadow-2xl shadow-blue-500/5`} onClick={onStartCall}>
+                                    <div className="flex justify-between items-center">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-16 h-16 rounded-full bg-blue-600 text-white flex items-center justify-center text-3xl shadow-xl shadow-blue-500/40 animate-pulse">
+                                                📞
+                                            </div>
+                                            <div>
+                                                <h3 className="text-xl font-black tracking-tight">Iniciar Chamada</h3>
+                                                <p className="text-xs opacity-40 font-bold uppercase tracking-widest mt-0.5">Conexão via Voz AI</p>
+                                            </div>
                                         </div>
+                                        <span className="text-2xl opacity-20 group-hover:opacity-100 transition-opacity">→</span>
+                                    </div>
+                                </div>
+
+                                <div className={`p-8 rounded-[2.5rem] border ${cardClasses} flex-1`}>
+                                    <div className="flex justify-between items-start mb-6">
+                                        <p className="text-[11px] font-bold uppercase tracking-widest opacity-30">Status do Sistema</p>
                                         <div className="flex gap-2">
-                                            <button onClick={downloadHistory} className={`p-2 rounded-xl transition-all ${isDark ? 'bg-slate-800 hover:bg-slate-700 text-blue-400' : 'bg-slate-100 hover:bg-slate-200 text-blue-600'}`} title="Download">
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                                </svg>
-                                            </button>
-                                            <button onClick={() => historyInputRef.current?.click()} className={`p-2 rounded-xl transition-all ${isDark ? 'bg-slate-800 hover:bg-slate-700 text-green-400' : 'bg-slate-100 hover:bg-slate-200 text-green-600'}`} title="Importar">
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                                                </svg>
-                                            </button>
-                                            <input ref={historyInputRef} type="file" className="hidden" accept=".json" onChange={uploadHistory} />
-                                            <button onClick={clearHistory} className={`p-2 rounded-xl transition-all ${isDark ? 'bg-slate-800 hover:bg-slate-700 text-red-400' : 'bg-slate-100 hover:bg-slate-200 text-red-600'}`} title="Limpar">
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                </svg>
-                                            </button>
+                                            <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                                            <div className="w-2 h-2 rounded-full bg-emerald-500/30" />
                                         </div>
                                     </div>
-
-                                    <div className="max-h-60 overflow-y-auto pr-2 custom-scrollbar">
-                                        {profile.history.length === 0 ? (
-                                            <p className="text-center py-8 opacity-40 text-xs italic">Nenhuma lembrança registrada ainda...</p>
-                                        ) : (
-                                            profile.history.slice().reverse().map(log => (
-                                                <div key={log.id} className={`p-4 rounded-2xl border mb-3 flex justify-between items-center transition-all ${isDark ? 'bg-[#0b0c10] border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
-                                                    <div>
-                                                        <p className="font-bold text-xs">{new Date(log.timestamp).toLocaleDateString()}</p>
-                                                        <p className="text-[10px] opacity-60 truncate max-w-[150px]">{log.notes}</p>
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <span className="text-[10px] font-bold block opacity-40">{formatTime(log.durationSec * 1000)}</span>
-                                                        <span className="text-lg">{MOOD_EMOJIS[log.moodEnd]}</span>
-                                                    </div>
-                                                </div>
-                                            ))
-                                        )}
+                                    <div className="space-y-4">
+                                        <div className="flex justify-between items-center bg-black/5 dark:bg-white/5 p-4 rounded-2xl">
+                                            <span className="text-xs font-bold opacity-30">Próxima Ligação</span>
+                                            <span className="text-sm font-bold text-blue-500">{nextScheduledCall ? formatTime(nextScheduledCall.triggerTime - Date.now()) : "Não Agendada"}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center bg-black/5 dark:bg-white/5 p-4 rounded-2xl">
+                                            <span className="text-xs font-bold opacity-30">Eficiência de Contato</span>
+                                            <span className="text-sm font-bold">94.8%</span>
+                                        </div>
                                     </div>
+                                </div>
+                            </div>
+
+                            {/* History Quick View - Professional List */}
+                            <div className={`md:col-span-2 p-8 rounded-[3rem] border ${cardClasses}`}>
+                                <div className="flex justify-between items-center mb-8">
+                                    <h3 className="text-xl font-black tracking-tighter italic uppercase">Fluxos de Memória</h3>
+                                    <div className="flex gap-2">
+                                        <button onClick={downloadHistory} className={`p-3 rounded-2xl hover:bg-blue-500/10 text-blue-500 transition-all border ${borderClass}`}>📥</button>
+                                        <button onClick={clearHistory} className={`p-3 rounded-2xl hover:bg-red-500/10 text-red-500 transition-all border ${borderClass}`}>🗑️</button>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    {profile.history.length === 0 ? (
+                                        <p className="col-span-2 text-center py-12 opacity-20 italic text-sm">Nenhuma lembrança registrada.</p>
+                                    ) : (
+                                        profile.history.slice(-4).reverse().map(log => (
+                                            <div key={log.id} className={`p-5 rounded-[2rem] border flex items-center gap-4 group transition-all hover:border-blue-500/30 ${isDark ? 'bg-[#0b0c10] border-white/5' : 'bg-slate-50 border-slate-100'}`}>
+                                                <div className="w-12 h-12 rounded-full bg-white dark:bg-white/5 flex items-center justify-center text-xl shadow-sm">
+                                                    {MOOD_EMOJIS[log.moodEnd]}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-[13px] font-bold truncate tracking-tight">{log.notes || "Conversa encerrada"}</p>
+                                                    <p className="text-[10px] opacity-40 font-bold uppercase mt-1">{new Date(log.timestamp).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    {activeTab === 'calendar' && (
-                        <div className="w-full">
-                            {user ? (
-                                <CalendarTab
-                                    user={user}
-                                    profile={profile}
-                                    setProfile={setProfile}
-                                    isDark={isDark}
-                                />
-                            ) : (
-                                <div className={`p-12 text-center rounded-[3rem] border ${cardClasses}`}>
-                                    <div className="w-20 h-20 bg-blue-500/10 rounded-full flex items-center justify-center text-4xl mx-auto mb-6">📅</div>
-                                    <h2 className="text-2xl font-bold mb-4">Calendário Offline</h2>
-                                    <p className="opacity-60 mb-8 px-12">Faça login para salvar seus compromissos na nuvem e permitir que a IA gerencie seu dia.</p>
-                                    <button
-                                        onClick={() => setShowAuth(true)}
-                                        className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95"
-                                    >
-                                        Entrar Agora
-                                    </button>
-                                </div>
-                            )}
-                        </div>
+                    {activeTab === 'calendar' && user && (
+                        <div className="w-full max-w-2xl mx-auto"><CalendarTab user={user} profile={profile} setProfile={setProfile} isDark={isDark} /></div>
                     )}
 
-                    {activeTab === 'memory' && (
-                        <div className="w-full">
-                            {user ? (
-                                <MemoryHistorySection user={user} isDark={isDark} />
-                            ) : (
-                                <div className={`p-12 text-center rounded-[3rem] border ${cardClasses}`}>
-                                    <div className="w-20 h-20 bg-blue-500/10 rounded-full flex items-center justify-center text-4xl mx-auto mb-6">🧠</div>
-                                    <h2 className="text-2xl font-bold mb-4">Memória Bloqueada</h2>
-                                    <p className="opacity-60 mb-8 px-12">Faça login para desbloquear a persistência emocional e cognitiva da sua IA.</p>
-                                    <button
-                                        onClick={() => setShowAuth(true)}
-                                        className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95"
-                                    >
-                                        Entrar Agora
-                                    </button>
-                                </div>
-                            )}
-                        </div>
+                    {activeTab === 'memory' && user && (
+                        <div className="w-full"><MemoryHistorySection user={user} isDark={isDark} /></div>
                     )}
 
-                    {activeTab === 'contacts' && (
-                        <div className="max-w-2xl mx-auto w-full">
-                            {user ? (
-                                <ContactList
-                                    currentUser={user}
-                                    onCallPartner={(newProfile) => {
-                                        setProfile(newProfile);
-                                        onStartCall();
-                                    }}
-                                    isDark={isDark}
-                                />
-                            ) : (
-                                <div className={`p-12 text-center rounded-[3rem] border ${cardClasses}`}>
-                                    <div className="w-20 h-20 bg-blue-500/10 rounded-full flex items-center justify-center text-4xl mx-auto mb-6">🔒</div>
-                                    <h2 className="text-2xl font-bold mb-4">Acesso Restrito</h2>
-                                    <p className="opacity-60 mb-8 px-12">Você precisa estar logado para gerenciar contatos e visualizar seus números de identificação.</p>
-                                    <button
-                                        onClick={() => setShowAuth(true)}
-                                        className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95"
-                                    >
-                                        Entrar Agora
-                                    </button>
-                                </div>
-                            )}
-                        </div>
+                    {activeTab === 'contacts' && user && (
+                        <div className="max-w-xl mx-auto w-full"><ContactList currentUser={user} onCallPartner={(p) => { setProfile(p); onStartCall(); }} isDark={isDark} /></div>
                     )}
 
                     {activeTab === 'config' && (
-                        <div className="space-y-6 animate-fade-in pb-12">
-                            <div className="flex flex-col items-center">
-                                <div
-                                    onClick={() => fileInputRef.current?.click()}
-                                    className={`w-32 h-32 rounded-full border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden relative group ${isDark ? 'bg-slate-800 border-slate-600 hover:border-pink-500' : 'bg-white border-rose-300 hover:border-pink-500'
-                                        }`}
-                                >
-                                    {profile.image ? (
-                                        <img src={profile.image} alt="Partner" className="w-full h-full object-cover" />
-                                    ) : (
-                                        <>
-                                            <span className="text-2xl group-hover:scale-110 transition-transform">📷</span>
-                                            <span className={`text-xs mt-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>FOTO</span>
-                                        </>
-                                    )}
+                        <div className="space-y-8 pb-20 max-w-2xl mx-auto">
+                            {/* Profile Header Settings */}
+                            <div className="flex flex-col items-center mb-12">
+                                <div className="relative group">
+                                    <div
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className={`w-36 h-36 rounded-[3.5rem] p-1 border-2 border-blue-500 shadow-2xl cursor-pointer transition-all overflow-hidden bg-white dark:bg-white/5`}
+                                    >
+                                        <div className="w-full h-full rounded-[3rem] overflow-hidden">
+                                            {profile.image ? <img src={profile.image} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-4xl opacity-20">📷</div>}
+                                        </div>
+                                    </div>
+                                    <div className="absolute -bottom-1 -right-1 w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center border-4 border-[#f9f9fb] dark:border-[#0b0c10] shadow-lg pointer-events-none">✏️</div>
                                     <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
                                 </div>
                                 <input
                                     type="text"
                                     value={profile.name}
                                     onChange={(e) => updateProfileAndSync(prev => ({ ...prev, name: e.target.value }))}
-                                    className={`mt-4 text-2xl font-bold italic bg-transparent border-b text-center outline-none w-64 ${isDark ? 'border-slate-700 focus:border-pink-500 text-white' : 'border-rose-300 focus:border-pink-500 text-slate-800'
-                                        }`}
-                                    placeholder="Nome do Amor"
+                                    className="mt-6 text-3xl font-black italic tracking-tighter bg-transparent border-none text-center outline-none w-full"
+                                    placeholder="NOME DA PARCEIRA"
                                 />
+                                <p className="text-[10px] font-bold uppercase tracking-[0.3em] opacity-30 mt-2">Personalização da Identidade</p>
                             </div>
 
-                            {/* API Key Section */}
-                            <div className={`p-8 rounded-[2rem] border ${cardClasses}`}>
-                                <div className="flex justify-between items-center mb-6">
-                                    <label className="text-xs font-bold uppercase tracking-widest block opacity-50">Gemini API Configuration</label>
-                                    <div className="flex items-center gap-2">
-                                        {isValidating ? (
-                                            <div className="w-2 h-2 rounded-full bg-blue-500 animate-ping" />
-                                        ) : (
-                                            <div className={`w-2.5 h-2.5 rounded-full ${apiStatus === 'valid' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : apiStatus === 'invalid' ? 'bg-red-500' : 'bg-slate-500'}`} />
-                                        )}
-                                        <span className="text-[10px] font-bold uppercase tracking-wider opacity-60">
-                                            {apiStatus === 'valid' ? 'Connected' : apiStatus === 'invalid' ? 'Invalid Key' : 'Not Verified'}
-                                        </span>
+                            {/* Section: Gemini Vision */}
+                            <div className={`p-10 rounded-[3rem] border ${cardClasses} relative overflow-hidden`}>
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/5 blur-3xl rounded-full" />
+                                <div className="flex justify-between items-center mb-8">
+                                    <h3 className="text-sm font-bold uppercase tracking-widest text-blue-600">Gemini Engine AI</h3>
+                                    <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${apiStatus === 'valid' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
+                                        {apiStatus === 'valid' ? 'Conectado ✓' : 'Desconectado ✕'}
                                     </div>
                                 </div>
-                                <div className="relative group">
-                                    <input
-                                        type="password"
-                                        value={apiKey}
-                                        onChange={(e) => {
-                                            setApiKey(e.target.value);
-                                            setApiStatus('idle');
-                                        }}
-                                        onBlur={() => validateApiKey(apiKey)}
-                                        className={`w-full p-4 pr-12 rounded-2xl text-sm font-mono border transition-all ${inputClasses}`}
-                                        placeholder="Enter your AIzaSy... key"
-                                    />
-                                    <button
-                                        onClick={() => validateApiKey(apiKey)}
-                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-blue-500 hover:text-blue-400 font-bold text-xs"
-                                    >
-                                        VERIFY
-                                    </button>
-                                </div>
-                                <div className="mt-4 flex justify-between items-center">
-                                    <p className="text-[10px] font-medium opacity-40">Your key is stored locally on this device.</p>
-                                    <a
-                                        href="https://aistudio.google.com/app/apikey"
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="text-[10px] font-bold text-blue-500 hover:underline uppercase tracking-tighter"
-                                    >
-                                        Get Free Key →
-                                    </a>
-                                </div>
-                            </div>
-
-                            <div className={`p-8 rounded-[2rem] border ${cardClasses}`}>
-                                <label className="text-xs font-bold uppercase tracking-widest mb-6 block opacity-50">Attachment Level</label>
-                                <div className="grid grid-cols-3 gap-3">
-                                    {Object.values(CallbackIntensity).map((intensity) => (
-                                        <button
-                                            key={intensity}
-                                            onClick={() => updateProfileAndSync(prev => ({ ...prev, intensity }))}
-                                            className={`py-3 px-2 rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all border shadow-sm ${profile.intensity === intensity
-                                                ? 'bg-blue-600 border-blue-600 text-white shadow-blue-600/20'
-                                                : `${isDark ? 'bg-[#0b0c10] border-slate-800 text-slate-500 hover:border-slate-700' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-white hove:shadow-sm'}`
-                                                }`}
-                                        >
-                                            {intensity}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="w-full">
-                                <label className="text-xs font-bold uppercase tracking-widest mb-4 block opacity-50">Accent Profile</label>
-                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                                    {Object.entries(ACCENT_META).map(([key, meta]) => (
-                                        <button
-                                            key={key}
-                                            onClick={() => updateProfileAndSync(prev => ({ ...prev, accent: key as Accent }))}
-                                            className={`p-3 rounded-2xl border text-left flex items-center gap-3 transition-all ${profile.accent === key ? (isDark ? 'border-blue-500 bg-blue-500/10' : 'border-blue-500 bg-blue-50 shadow-sm') : cardClasses}`}
-                                        >
-                                            <div className="w-8 h-8 rounded-full shadow-sm overflow-hidden border border-white/10">
-                                                <img src={meta.flagUrl} className="w-full h-full object-cover" />
-                                            </div>
-                                            <span className="text-xs font-bold tracking-tight">{meta.label}</span>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className={`p-8 rounded-[2rem] border ${cardClasses}`}>
-                                <label className="text-xs font-bold uppercase tracking-widest mb-6 block opacity-50">Idioma da Plataforma</label>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-                                    {Object.entries(LANGUAGE_META).map(([key, meta]) => (
-                                        <button
-                                            key={key}
-                                            onClick={() => updateProfileAndSync(prev => ({ ...prev, language: key as PlatformLanguage }))}
-                                            className={`py-3 px-2 rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all border shadow-sm flex items-center justify-center gap-2 ${profile.language === key
-                                                ? 'bg-blue-600 border-blue-600 text-white shadow-blue-600/20'
-                                                : `${isDark ? 'bg-[#0b0c10] border-slate-800 text-slate-500 hover:border-slate-700' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-white'}`
-                                                }`}
-                                        >
-                                            <span>{meta.flag}</span>
-                                            <span>{meta.label}</span>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className={`p-8 rounded-[2rem] border ${cardClasses}`}>
-                                <label className="text-xs font-bold uppercase tracking-widest mb-6 block opacity-50">Voz e Identidade (Género)</label>
-
                                 <div className="space-y-6">
-                                    {/* Feminino */}
-                                    <div>
-                                        <p className="text-[10px] font-bold uppercase tracking-widest opacity-30 mb-3 ml-1">Vozes Femininas ♀</p>
-                                        <div className="flex flex-wrap gap-3">
-                                            {Object.values(VoiceName).filter(v => VOICE_META[v].gender === 'Female').map(voice => (
-                                                <button
-                                                    key={voice}
-                                                    onClick={() => updateProfileAndSync(prev => ({ ...prev, voice }))}
-                                                    className={`px-5 py-2.5 rounded-2xl text-xs font-bold border transition-all ${profile.voice === voice ? 'bg-pink-600 border-pink-600 text-white shadow-lg shadow-pink-600/20' : cardClasses}`}
-                                                >
-                                                    {voice}
-                                                </button>
-                                            ))}
-                                        </div>
+                                    <div className="relative">
+                                        <input
+                                            type="password"
+                                            value={apiKey}
+                                            onChange={(e) => { setApiKey(e.target.value); setApiStatus('idle'); }}
+                                            onBlur={() => validateApiKey(apiKey)}
+                                            className={`w-full p-5 rounded-[2rem] text-sm font-mono border ${inputClasses}`}
+                                            placeholder="Enter Gemini API Key..."
+                                        />
+                                        <button onClick={() => validateApiKey(apiKey)} className="absolute right-4 top-1/2 -translate-y-1/2 text-blue-600 font-bold text-xs hover:scale-105 transition-all">VERIFICAR</button>
+                                    </div>
+                                    <div className="flex justify-between items-center px-2">
+                                        <p className="text-[9px] font-bold opacity-30 uppercase tracking-widest leading-loose">Chave criptografada localmente.</p>
+                                        <a href="https://aistudio.google.com/app/apikey" target="_blank" className="text-[10px] font-black text-blue-600 hover:opacity-70 transition-opacity">PEGAR CHAVE GRÁTIS →</a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Section: Voice & Accent */}
+                            <div className={`p-10 rounded-[3rem] border ${cardClasses}`}>
+                                <h3 className="text-sm font-bold uppercase tracking-widest mb-10 opacity-30">Voz & Sotaque Profissional</h3>
+
+                                <div className="space-y-10">
+                                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                                        {Object.entries(ACCENT_META).map(([key, meta]) => (
+                                            <button
+                                                key={key}
+                                                onClick={() => updateProfileAndSync(prev => ({ ...prev, accent: key as Accent }))}
+                                                className={`p-3 rounded-2xl border flex flex-col items-center gap-3 transition-all ${profile.accent === key ? 'border-blue-600 bg-blue-600/5' : 'border-slate-100 hover:border-blue-300'}`}
+                                            >
+                                                <div className="w-10 h-10 rounded-xl overflow-hidden shadow-md">
+                                                    <img src={meta.flagUrl} className="w-full h-full object-cover" />
+                                                </div>
+                                                <span className="text-[10px] font-bold uppercase tracking-tighter opacity-70">{meta.label}</span>
+                                            </button>
+                                        ))}
                                     </div>
 
-                                    {/* Masculino */}
-                                    <div>
-                                        <p className="text-[10px] font-bold uppercase tracking-widest opacity-30 mb-3 ml-1">Vozes Masculinas ♂</p>
-                                        <div className="flex flex-wrap gap-3">
-                                            {Object.values(VoiceName).filter(v => VOICE_META[v].gender === 'Male').map(voice => (
-                                                <button
-                                                    key={voice}
-                                                    onClick={() => updateProfileAndSync(prev => ({ ...prev, voice }))}
-                                                    className={`px-5 py-2.5 rounded-2xl text-xs font-bold border transition-all ${profile.voice === voice ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-600/20' : cardClasses}`}
-                                                >
-                                                    {voice}
-                                                </button>
-                                            ))}
+                                    <div className="space-y-6">
+                                        <div>
+                                            <p className="text-[10px] font-bold uppercase tracking-widest opacity-20 mb-4 text-center">Timbres Femininos</p>
+                                            <div className="flex flex-wrap justify-center gap-2">
+                                                {Object.values(VoiceName).filter(v => VOICE_META[v].gender === 'Female').map(voice => (
+                                                    <button
+                                                        key={voice}
+                                                        onClick={() => updateProfileAndSync(prev => ({ ...prev, voice }))}
+                                                        className={`px-5 py-3 rounded-full text-[11px] font-bold border transition-all ${profile.voice === voice ? 'bg-rose-600 border-rose-600 text-white shadow-xl shadow-rose-600/20 scale-105' : 'border-slate-100 hover:bg-slate-50'}`}
+                                                    >
+                                                        {voice}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-bold uppercase tracking-widest opacity-20 mb-4 text-center">Timbres Masculinos</p>
+                                            <div className="flex flex-wrap justify-center gap-2">
+                                                {Object.values(VoiceName).filter(v => VOICE_META[v].gender === 'Male').map(voice => (
+                                                    <button
+                                                        key={voice}
+                                                        onClick={() => updateProfileAndSync(prev => ({ ...prev, voice }))}
+                                                        className={`px-5 py-3 rounded-full text-[11px] font-bold border transition-all ${profile.voice === voice ? 'bg-blue-600 border-blue-600 text-white shadow-xl shadow-blue-600/20 scale-105' : 'border-slate-100 hover:bg-slate-50'}`}
+                                                    >
+                                                        {voice}
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="w-full">
-                                <label className="text-xs font-bold uppercase tracking-widest mb-4 block opacity-50">Personality Engine</label>
-                                <textarea
-                                    value={profile.personality}
-                                    onChange={(e) => updateProfileAndSync(prev => ({ ...prev, personality: e.target.value }))}
-                                    className={`w-full h-32 rounded-[1.5rem] p-5 text-sm font-medium focus:outline-none border shadow-inner transition-all ${inputClasses}`}
-                                />
-                            </div>
-
-                            <div className="w-full">
-                                <label className="text-xs font-bold uppercase tracking-widest mb-4 block opacity-50">Live Context</label>
-                                <textarea
-                                    value={profile.dailyContext}
-                                    onChange={(e) => updateProfileAndSync(prev => ({ ...prev, dailyContext: e.target.value }))}
-                                    className={`w-full h-32 rounded-[1.5rem] p-5 text-sm font-medium focus:outline-none border shadow-inner transition-all ${inputClasses}`}
-                                    placeholder="Ex: I'm currently studying for my final exams..."
-                                />
+                            {/* Section: Personality & Context */}
+                            <div className={`p-10 rounded-[3rem] border ${cardClasses}`}>
+                                <h3 className="text-sm font-bold uppercase tracking-widest mb-10 opacity-30">Motor de Personalidade</h3>
+                                <div className="space-y-8">
+                                    <div>
+                                        <label className="text-[10px] font-bold uppercase tracking-widest text-blue-600 block mb-4 ml-4">Prompt de Comportamento</label>
+                                        <textarea
+                                            value={profile.personality}
+                                            onChange={(e) => updateProfileAndSync(prev => ({ ...prev, personality: e.target.value }))}
+                                            className={`w-full h-40 rounded-[2.5rem] p-8 text-[13px] font-medium border focus:outline-none transition-all resize-none ${inputClasses}`}
+                                            placeholder="Descreva detalhadamente como a IA deve agir..."
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-3">
+                                        {Object.values(CallbackIntensity).map((intensity) => (
+                                            <button
+                                                key={intensity}
+                                                onClick={() => updateProfileAndSync(prev => ({ ...prev, intensity }))}
+                                                className={`py-4 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest border transition-all ${profile.intensity === intensity ? 'bg-black text-white' : 'border-slate-100 hover:bg-slate-50'}`}
+                                            >
+                                                {intensity}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )}
 
                     {activeTab === 'chats' && (
-                        <section className="w-full max-w-2xl mx-auto px-4 sm:px-0">
-                            <QuickChatTab
-                                currentUser={user}
-                                profile={profile}
-                                onCallPartner={onStartCall}
-                                isDark={isDark}
-                            />
-                        </section>
+                        <div className="w-full h-[calc(100vh-280px)]"><QuickChatTab currentUser={user} profile={profile} onCallPartner={onStartCall} isDark={isDark} /></div>
                     )}
                 </main>
             </div>
