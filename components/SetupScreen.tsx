@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Mood, VoiceName, Accent, PartnerProfile, MOOD_EMOJIS, VOICE_META, ACCENT_META, CallbackIntensity, CallLog, ScheduledCall, PlatformLanguage, LANGUAGE_META } from '../types';
+import { Mood, VoiceName, Accent, PartnerProfile, MOOD_EMOJIS, VOICE_META, ACCENT_META, CallbackIntensity, CallLog, ScheduledCall, PlatformLanguage, LANGUAGE_META, UserProfile } from '../types';
 import { ContactList } from './ContactList';
 import { AuthModal } from './AuthModal';
 import { CalendarTab } from './CalendarTab';
@@ -15,14 +15,19 @@ interface SetupScreenProps {
     apiKey: string;
     setApiKey: (key: string) => void;
     user: any;
+    currentUserProfile: UserProfile | null;
+    onUpdateUserProfile: (profile: UserProfile) => void;
 }
 
-export const SetupScreen: React.FC<SetupScreenProps> = ({ profile, setProfile, onStartCall, nextScheduledCall, apiKey, setApiKey, user }) => {
+export const SetupScreen: React.FC<SetupScreenProps> = ({ profile, setProfile, onStartCall, nextScheduledCall, apiKey, setApiKey, user, currentUserProfile, onUpdateUserProfile }) => {
     const [activeTab, setActiveTab] = useState<'dashboard' | 'contacts' | 'calendar' | 'memory' | 'config' | 'chats'>('dashboard');
     const [showAuth, setShowAuth] = useState(false);
+    const [showProfileModal, setShowProfileModal] = useState(false);
     const [isValidating, setIsValidating] = useState(false);
     const [apiStatus, setApiStatus] = useState<'idle' | 'valid' | 'invalid'>('idle');
+    const [isSavingProfile, setIsSavingProfile] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const userFileInputRef = useRef<HTMLInputElement>(null);
     const historyInputRef = useRef<HTMLInputElement>(null);
 
     const isDark = profile.theme === 'dark';
@@ -121,6 +126,34 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ profile, setProfile, o
         });
     };
 
+    const handleUserImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file && currentUserProfile) {
+            const reader = new FileReader();
+            reader.onloadend = () => onUpdateUserProfile({ ...currentUserProfile, avatar_url: reader.result as string });
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const saveUserProfile = async () => {
+        if (!user || !currentUserProfile) return;
+        setIsSavingProfile(true);
+        const { error } = await supabase.from('profiles').update({
+            display_name: currentUserProfile.display_name,
+            nickname: currentUserProfile.nickname,
+            avatar_url: currentUserProfile.avatar_url
+        }).eq('id', user.id);
+
+        if (error) alert("Erro ao salvar perfil.");
+        else setShowProfileModal(false);
+        setIsSavingProfile(false);
+    };
+
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text);
+        alert("Copiado!");
+    };
+
     return (
         <div className={`min-h-screen ${themeClasses} transition-colors duration-700 flex flex-col items-center font-sans tracking-tight`}>
 
@@ -134,11 +167,23 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ profile, setProfile, o
                 </div>
                 <div className="flex items-center gap-3">
                     {user ? (
-                        <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-slate-200 border border-white/10 overflow-hidden">
-                                {user.avatar_url && <img src={user.avatar_url} className="w-full h-full object-cover" />}
+                        <div className="flex items-center gap-2 cursor-pointer group" onClick={() => setShowProfileModal(true)}>
+                            <div className="flex flex-col items-end mr-1">
+                                <span className="text-[11px] font-black uppercase tracking-tighter truncate max-w-[100px]">{currentUserProfile?.display_name || "Usuário"}</span>
+                                <span className="text-[9px] opacity-40 font-bold">{currentUserProfile?.personal_number || ""}</span>
                             </div>
-                            <button onClick={() => supabase.auth.signOut()} className="text-[10px] font-bold text-red-500 uppercase">Sair</button>
+                            <div className="w-10 h-10 rounded-xl bg-slate-200 border border-white/10 overflow-hidden shadow-lg transition-transform group-hover:scale-105">
+                                {currentUserProfile?.avatar_url ? (
+                                    <img src={currentUserProfile.avatar_url} className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-xl">👤</div>
+                                )}
+                            </div>
+                            <button onClick={(e) => { e.stopPropagation(); supabase.auth.signOut(); }} className="ml-2 p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                </svg>
+                            </button>
                         </div>
                     ) : (
                         <button onClick={() => setShowAuth(true)} className="px-4 py-2 bg-blue-600 text-white rounded-full text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-blue-500/20">Entrar</button>
@@ -434,6 +479,92 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ profile, setProfile, o
             </div>
 
             {showAuth && <AuthModal onClose={() => setShowAuth(false)} isDark={isDark} />}
+
+            {/* Profile Modal */}
+            {showProfileModal && currentUserProfile && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/70 backdrop-blur-xl animate-in fade-in duration-500">
+                    <div className={`w-full max-w-md p-10 rounded-[4rem] border shadow-[0_48px_80px_-20px_rgba(0,0,0,0.6)] transform animate-in slide-in-from-bottom-12 duration-700 ${cardClasses}`}>
+                        <div className="flex justify-between items-start mb-10">
+                            <div>
+                                <h3 className="text-2xl font-black italic tracking-tighter uppercase">Meu Perfil</h3>
+                                <p className="text-[10px] font-black uppercase tracking-widest opacity-20">Identidade e Conexões</p>
+                            </div>
+                            <button onClick={() => setShowProfileModal(false)} className="w-10 h-10 flex items-center justify-center opacity-30 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-all text-xl">✕</button>
+                        </div>
+
+                        <div className="space-y-8">
+                            {/* Photo Upload */}
+                            <div className="flex flex-col items-center gap-6">
+                                <div
+                                    onClick={() => userFileInputRef.current?.click()}
+                                    className={`w-32 h-32 rounded-[2.5rem] overflow-hidden border-4 shadow-2xl transition-all hover:scale-105 cursor-pointer ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-white'}`}
+                                >
+                                    {currentUserProfile.avatar_url ? (
+                                        <img src={currentUserProfile.avatar_url} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-4xl opacity-10">📸</div>
+                                    )}
+                                </div>
+                                <input ref={userFileInputRef} type="file" accept="image/*" className="hidden" onChange={handleUserImageUpload} />
+                                <p className="text-[10px] font-black uppercase tracking-widest opacity-30">Clique para alterar foto</p>
+                            </div>
+
+                            <div className="space-y-6">
+                                <div>
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-blue-600 block mb-3 ml-4">Nome de Usuário</label>
+                                    <input
+                                        type="text"
+                                        value={currentUserProfile.display_name || ''}
+                                        onChange={e => onUpdateUserProfile({ ...currentUserProfile, display_name: e.target.value })}
+                                        className={`w-full p-6 rounded-[2rem] border text-sm font-bold outline-none transition-all ${inputClasses}`}
+                                        placeholder="Seu nome real"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-blue-600 block mb-3 ml-4">Apelido Carinhoso (Para a IA)</label>
+                                    <input
+                                        type="text"
+                                        value={currentUserProfile.nickname || ''}
+                                        onChange={e => onUpdateUserProfile({ ...currentUserProfile, nickname: e.target.value })}
+                                        className={`w-full p-6 rounded-[2rem] border text-sm font-bold outline-none transition-all ${inputClasses}`}
+                                        placeholder="Ex: Amor, Vida, Bebê..."
+                                    />
+                                    <p className="text-[9px] opacity-30 mt-2 ml-4 lowercase">Como a AI deve chamar você durante as conversas</p>
+                                </div>
+
+                                <div className="grid grid-cols-1 gap-4 pt-4">
+                                    <div className={`p-5 rounded-[2rem] border flex items-center justify-between ${isDark ? 'bg-white/5' : 'bg-slate-50'}`}>
+                                        <div>
+                                            <p className="text-[9px] font-black opacity-30 uppercase tracking-widest italic mb-1">Meu Número</p>
+                                            <p className="text-lg font-black italic tracking-tighter text-blue-600">{currentUserProfile.personal_number}</p>
+                                        </div>
+                                        <button onClick={() => copyToClipboard(currentUserProfile.personal_number)} className="p-3 bg-blue-600/10 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all">
+                                            📋
+                                        </button>
+                                    </div>
+                                    <div className={`p-5 rounded-[2rem] border flex items-center justify-between ${isDark ? 'bg-white/5' : 'bg-slate-50'}`}>
+                                        <div>
+                                            <p className="text-[9px] font-black opacity-30 uppercase tracking-widest italic mb-1">Número da IA (Público)</p>
+                                            <p className="text-lg font-black italic tracking-tighter text-pink-600">{currentUserProfile.ai_number}</p>
+                                        </div>
+                                        <button onClick={() => copyToClipboard(currentUserProfile.ai_number)} className="p-3 bg-pink-600/10 text-pink-600 rounded-xl hover:bg-pink-600 hover:text-white transition-all">
+                                            📋
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={saveUserProfile}
+                                disabled={isSavingProfile}
+                                className="w-full py-6 bg-blue-600 text-white rounded-[2.5rem] font-black uppercase tracking-[0.3em] shadow-2xl shadow-blue-500/40 hover:scale-[1.02] active:scale-95 transition-all text-[11px] disabled:opacity-50"
+                            >
+                                {isSavingProfile ? "Salvando..." : "Salvar Alterações"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

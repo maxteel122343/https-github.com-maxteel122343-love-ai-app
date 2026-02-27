@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { SetupScreen } from './components/SetupScreen';
 import { CallScreen } from './components/CallScreen';
 import { IncomingCallScreen } from './components/IncomingCallScreen';
-import { PartnerProfile, Mood, VoiceName, Accent, CallbackIntensity, ScheduledCall, CallLog, PlatformLanguage } from './types';
+import { PartnerProfile, Mood, VoiceName, Accent, CallbackIntensity, ScheduledCall, CallLog, PlatformLanguage, UserProfile } from './types';
 import { supabase } from './supabaseClient';
 
 const DEFAULT_PROFILE: PartnerProfile = {
@@ -29,6 +29,7 @@ function App() {
   const [nextScheduledCall, setNextScheduledCall] = useState<ScheduledCall | null>(null);
   const [apiKey, setApiKey] = useState<string>(() => localStorage.getItem('GEMINI_API_KEY') || "AIzaSyDNwhe9s8gdC2SnU2g2bOyBSgRmoE1ER3s");
   const [user, setUser] = useState<any>(null);
+  const [currentUserProfile, setCurrentUserProfile] = useState<UserProfile | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -44,17 +45,22 @@ function App() {
 
   useEffect(() => {
     if (user) {
-      supabase.from('profiles').select('ai_settings').eq('id', user.id).single()
+      supabase.from('profiles').select('*').eq('id', user.id).single()
         .then(({ data }) => {
-          if (data?.ai_settings) {
-            const settings = data.ai_settings as any;
-            if (settings.gemini_api_key) {
-              setApiKey(settings.gemini_api_key);
+          if (data) {
+            setCurrentUserProfile(data);
+            if (data.ai_settings) {
+              const settings = data.ai_settings as any;
+              if (settings.gemini_api_key) {
+                setApiKey(settings.gemini_api_key);
+              }
+              // Merge with default to ensure all fields exist
+              setProfile(prev => ({ ...prev, ...settings }));
             }
-            // Merge with default to ensure all fields exist
-            setProfile(prev => ({ ...prev, ...settings }));
           }
         });
+    } else {
+      setCurrentUserProfile(null);
     }
   }, [user]);
 
@@ -197,6 +203,8 @@ function App() {
           apiKey={apiKey}
           setApiKey={handleApiKeyChange}
           user={user}
+          currentUserProfile={currentUserProfile}
+          onUpdateUserProfile={setCurrentUserProfile}
         />
       )}
 

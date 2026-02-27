@@ -123,6 +123,7 @@ export interface UserProfile {
   ai_number: string;
   avatar_url: string | null;
   ai_settings: Partial<PartnerProfile>;
+  nickname?: string;
 }
 
 export interface Contact {
