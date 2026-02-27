@@ -4,6 +4,7 @@ import { ContactList } from './ContactList';
 import { AuthModal } from './AuthModal';
 import { CalendarTab } from './CalendarTab';
 import { MemoryHistorySection } from './MemoryHistorySection';
+import { QuickChatTab } from './QuickChatTab';
 import { supabase } from '../supabaseClient';
 
 interface SetupScreenProps {
@@ -17,7 +18,7 @@ interface SetupScreenProps {
 }
 
 export const SetupScreen: React.FC<SetupScreenProps> = ({ profile, setProfile, onStartCall, nextScheduledCall, apiKey, setApiKey, user }) => {
-    const [activeTab, setActiveTab] = useState<'dashboard' | 'contacts' | 'calendar' | 'memory' | 'config'>('dashboard');
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'contacts' | 'calendar' | 'memory' | 'config' | 'chats'>('dashboard');
     const [showAuth, setShowAuth] = useState(false);
     const [isValidating, setIsValidating] = useState(false);
     const [apiStatus, setApiStatus] = useState<'idle' | 'valid' | 'invalid'>('idle');
@@ -162,23 +163,30 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ profile, setProfile, o
 
                 {/* Tabs */}
                 <div className="w-full mb-8 relative">
-                    <nav className={`flex p-1.5 rounded-[1.5rem] border overflow-x-auto scrollbar-hide no-scrollbar ${cardClasses}`}>
-                        {[
-                            { id: 'dashboard', label: 'Dashboard' },
-                            { id: 'contacts', label: 'Contatos' },
-                            { id: 'calendar', label: 'Calendário' },
-                            { id: 'memory', label: 'Memória' },
-                            { id: 'config', label: 'Config' }
-                        ].map(tab => (
-                            <button
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id as any)}
-                                className={`flex-1 min-w-[100px] py-3 px-2 rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === tab.id ? 'bg-blue-600 text-white shadow-lg' : 'opacity-40 hover:opacity-100'}`}
-                            >
-                                {tab.label}
-                            </button>
-                        ))}
-                    </nav>
+                    {/* Tab Menu */}
+                    <div className="w-full relative px-6 mb-8 overflow-hidden">
+                        <div className="flex flex-nowrap gap-2 overflow-x-auto scrollbar-hide no-scrollbar py-2">
+                            {[
+                                { id: 'dashboard', label: '🏠 Início' },
+                                { id: 'chats', label: '💬 Mensagens' },
+                                { id: 'contacts', label: '📇 Contatos' },
+                                { id: 'calendar', label: '📅 Calendário' },
+                                { id: 'memory', label: '🧠 Memória' },
+                                { id: 'config', label: '⚙️ Config' }
+                            ].map(tab => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id as any)}
+                                    className={`px-6 py-3 rounded-2xl flex-shrink-0 text-xs font-bold uppercase tracking-widest transition-all duration-300 ${activeTab === tab.id
+                                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20 scale-105'
+                                        : 'opacity-40 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5'
+                                        }`}
+                                >
+                                    {tab.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
                 </div>
 
                 {/* Content */}
@@ -546,6 +554,17 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ profile, setProfile, o
                                 />
                             </div>
                         </div>
+                    )}
+
+                    {activeTab === 'chats' && (
+                        <section className="w-full max-w-2xl mx-auto px-4 sm:px-0">
+                            <QuickChatTab
+                                currentUser={user}
+                                profile={profile}
+                                onCallPartner={onStartCall}
+                                isDark={isDark}
+                            />
+                        </section>
                     )}
                 </main>
             </div>
