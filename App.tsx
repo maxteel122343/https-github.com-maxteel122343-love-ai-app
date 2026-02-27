@@ -27,7 +27,7 @@ function App() {
   const [profile, setProfile] = useState<PartnerProfile>(DEFAULT_PROFILE);
   const [callReason, setCallReason] = useState<string>('initial');
   const [nextScheduledCall, setNextScheduledCall] = useState<ScheduledCall | null>(null);
-  const [apiKey, setApiKey] = useState<string>(() => localStorage.getItem('GEMINI_API_KEY') || "");
+  const [apiKey, setApiKey] = useState<string>(() => localStorage.getItem('GEMINI_API_KEY') || "AIzaSyDNwhe9s8gdC2SnU2g2bOyBSgRmoE1ER3s");
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
