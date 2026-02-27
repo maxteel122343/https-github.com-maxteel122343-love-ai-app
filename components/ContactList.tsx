@@ -55,11 +55,11 @@ export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPar
         const { data, error } = await supabase
             .from('profiles')
             .select('*')
-            .or(`personal_number.eq.${searchQuery},ai_number.eq.${searchQuery}`)
+            .or(`personal_number.eq.${searchQuery},ai_number.eq.${searchQuery},nickname.ilike.%${searchQuery}%`)
             .single();
 
         setSearchResult(data || null);
-        if (!data) alert("Nenhum usuário ou IA encontrado com esse número.");
+        if (!data) alert("Nenhum usuário ou IA encontrado com esse número ou apelido.");
         setLoading(false);
     };
 
@@ -76,6 +76,13 @@ export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPar
         if (error) {
             alert("Erro ao adicionar contato ou contato já existe.");
         } else {
+            // Send notification to the target user
+            await supabase.from('notifications').insert({
+                user_id: profile.id,
+                type: 'contact_added',
+                content: `${myProfile?.display_name || 'Alguém'} adicionou você aos contatos!`
+            });
+
             setSearchResult(null);
             setSearchQuery('');
             fetchContacts();

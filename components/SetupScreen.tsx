@@ -23,6 +23,8 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ profile, setProfile, o
     const [activeTab, setActiveTab] = useState<'dashboard' | 'contacts' | 'calendar' | 'memory' | 'config' | 'chats'>('dashboard');
     const [showAuth, setShowAuth] = useState(false);
     const [showProfileModal, setShowProfileModal] = useState(false);
+    const [showNotifications, setShowNotifications] = useState(false);
+    const [notifications, setNotifications] = useState<any[]>([]);
     const [isValidating, setIsValidating] = useState(false);
     const [apiStatus, setApiStatus] = useState<'idle' | 'valid' | 'invalid'>('idle');
     const [isSavingProfile, setIsSavingProfile] = useState(false);
@@ -149,6 +151,39 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ profile, setProfile, o
         setIsSavingProfile(false);
     };
 
+    const fetchNotifications = async () => {
+        if (!user) return;
+        const { data } = await supabase
+            .from('notifications')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false });
+        if (data) setNotifications(data);
+    };
+
+    const markNotificationAsRead = async (id: string) => {
+        await supabase.from('notifications').update({ is_read: true }).eq('id', id);
+        fetchNotifications();
+    };
+
+    const deleteNotification = async (id: string) => {
+        await supabase.from('notifications').delete().eq('id', id);
+        fetchNotifications();
+    };
+
+    React.useEffect(() => {
+        if (user) {
+            fetchNotifications();
+            // Optional: Realtime subscription
+            const channel = supabase.channel('notifications')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, () => {
+                    fetchNotifications();
+                })
+                .subscribe();
+            return () => { channel.unsubscribe(); };
+        }
+    }, [user]);
+
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text);
         alert("Copiado!");
@@ -166,6 +201,20 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ profile, setProfile, o
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
+                    {user && (
+                        <button
+                            onClick={() => setShowNotifications(true)}
+                            className={`relative w-10 h-10 rounded-full flex items-center justify-center border transition-all ${cardClasses}`}
+                        >
+                            <span>🔔</span>
+                            {notifications.filter(n => !n.is_read).length > 0 && (
+                                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-white dark:border-black flex items-center justify-center text-[8px] text-white font-bold">
+                                    {notifications.filter(n => !n.is_read).length}
+                                </span>
+                            )}
+                        </button>
+                    )}
+
                     {user ? (
                         <div className="flex items-center gap-2 cursor-pointer group" onClick={() => setShowProfileModal(true)}>
                             <div className="flex flex-col items-end mr-1">
@@ -479,6 +528,46 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ profile, setProfile, o
             </div>
 
             {showAuth && <AuthModal onClose={() => setShowAuth(false)} isDark={isDark} />}
+
+            {/* Notifications Modal */}
+            {showNotifications && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/70 backdrop-blur-xl animate-in fade-in duration-500">
+                    <div className={`w-full max-w-md p-10 rounded-[4rem] border shadow-[0_48px_80px_-20px_rgba(0,0,0,0.6)] transform animate-in slide-in-from-bottom-12 duration-700 ${cardClasses}`}>
+                        <div className="flex justify-between items-start mb-10">
+                            <div>
+                                <h3 className="text-2xl font-black italic tracking-tighter uppercase">Notificações</h3>
+                                <p className="text-[10px] font-black uppercase tracking-widest opacity-20">Alertas do Sistema</p>
+                            </div>
+                            <button onClick={() => setShowNotifications(false)} className="w-10 h-10 flex items-center justify-center opacity-30 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-all text-xl">✕</button>
+                        </div>
+
+                        <div className="space-y-4 max-h-[400px] overflow-y-auto no-scrollbar">
+                            {notifications.length === 0 ? (
+                                <p className="text-center py-12 opacity-20 italic text-sm">Nenhuma notificação por enquanto.</p>
+                            ) : (
+                                notifications.map(notif => (
+                                    <div
+                                        key={notif.id}
+                                        className={`p-5 rounded-[2rem] border flex items-center justify-between gap-4 transition-all ${notif.is_read ? 'opacity-50' : 'border-blue-500/30 bg-blue-500/5 shadow-lg shadow-blue-500/5'}`}
+                                        onClick={() => !notif.is_read && markNotificationAsRead(notif.id)}
+                                    >
+                                        <div className="flex-1">
+                                            <p className="text-sm font-bold tracking-tight">{notif.content}</p>
+                                            <p className="text-[9px] opacity-40 font-bold uppercase mt-1">{new Date(notif.created_at).toLocaleString()}</p>
+                                        </div>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); deleteNotification(notif.id); }}
+                                            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-500/10 text-red-500 transition-all opacity-30 hover:opacity-100"
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Profile Modal */}
             {showProfileModal && currentUserProfile && (
