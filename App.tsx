@@ -52,6 +52,10 @@ function App() {
   const [callerProfile, setCallerProfile] = useState<UserProfile | null>(null);
   // Track whether the pending INCOMING call is human-to-human (not AI)
   const pendingCallIsHumanRef = React.useRef<boolean>(false);
+  // Track whether the current OUTBOUND call is human-to-human (not AI)
+  const isOutboundHumanCallRef = React.useRef<boolean>(false);
+  // Track isCaller for the HumanCallScreen
+  const [isHumanCallCaller, setIsHumanCallCaller] = React.useState<boolean>(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -235,6 +239,9 @@ function App() {
       setShowAuth(true);
       return;
     }
+
+    // Track outbound call type so we know whether to open HumanCallScreen when accepted
+    isOutboundHumanCallRef.current = !isAi;
 
     setActivePartner(partnerProfile);
     setAppState('OUTBOUND_CALLING');
@@ -449,7 +456,13 @@ function App() {
         if (updatedCall.id === activeCallId) {
           setCallStatus(updatedCall.status);
           if (updatedCall.status === 'accepted') {
-            setAppState('CALLING');
+            if (isOutboundHumanCallRef.current) {
+              // Caller → open WebRTC as the offer sender
+              setIsHumanCallCaller(true);
+              setAppState('HUMAN_CALL');
+            } else {
+              setAppState('CALLING');
+            }
           } else if (updatedCall.status === 'rejected' || updatedCall.status === 'no_answer') {
             setTimeout(() => {
               setAppState('SETUP');
@@ -546,12 +559,13 @@ function App() {
         <HumanCallScreen
           callId={activeCallId}
           partner={activePartner}
-          isCaller={false}  // we only enter HUMAN_CALL as the receiver
+          isCaller={isHumanCallCaller}
           userId={user?.id || ''}
           isDark={profile.theme === 'dark'}
           onEnd={() => {
             setAppState('SETUP');
             setActiveCallId(null);
+            setIsHumanCallCaller(false);
           }}
         />
       )}
