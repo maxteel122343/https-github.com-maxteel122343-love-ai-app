@@ -25,6 +25,7 @@ interface SetupScreenProps {
 export const SetupScreen: React.FC<SetupScreenProps> = ({ profile, setProfile, onStartCall, onCallPartner, nextScheduledCall, apiKey, setApiKey, user, currentUserProfile, onUpdateUserProfile, showAuth, setShowAuth }) => {
     const [activeTab, setActiveTab] = useState<'dashboard' | 'contacts' | 'calendar' | 'memory' | 'config' | 'chats'>('dashboard');
     const [showProfileModal, setShowProfileModal] = useState(false);
+    const [isSavingImage, setIsSavingImage] = useState(false);
     const [showNotifications, setShowNotifications] = useState(false);
     const [notifications, setNotifications] = useState<any[]>([]);
     const [isValidating, setIsValidating] = useState(false);
@@ -50,12 +51,23 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ profile, setProfile, o
 
     const status = getRelationshipStatus(profile.relationshipScore);
 
-    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => setProfile(prev => ({ ...prev, image: reader.result as string }));
-            reader.readAsDataURL(file);
+        if (file && user) {
+            setIsSavingImage(true);
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${user.id}/ai_${Date.now()}.${fileExt}`;
+            const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file);
+
+            if (uploadError) {
+                alert("Erro ao fazer upload da imagem.");
+                setIsSavingImage(false);
+                return;
+            }
+
+            const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
+            updateProfileAndSync(prev => ({ ...prev, image: data.publicUrl }));
+            setIsSavingImage(false);
         }
     };
 
@@ -130,12 +142,23 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ profile, setProfile, o
         });
     };
 
-    const handleUserImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleUserImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (file && currentUserProfile) {
-            const reader = new FileReader();
-            reader.onloadend = () => onUpdateUserProfile({ ...currentUserProfile, avatar_url: reader.result as string });
-            reader.readAsDataURL(file);
+        if (file && currentUserProfile && user) {
+            setIsSavingImage(true);
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${user.id}/user_${Date.now()}.${fileExt}`;
+            const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file);
+
+            if (uploadError) {
+                alert("Erro ao fazer upload.");
+                setIsSavingImage(false);
+                return;
+            }
+
+            const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
+            onUpdateUserProfile({ ...currentUserProfile, avatar_url: data.publicUrl });
+            setIsSavingImage(false);
         }
     };
 
@@ -145,7 +168,8 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ profile, setProfile, o
         const { error } = await supabase.from('profiles').update({
             display_name: currentUserProfile.display_name,
             nickname: currentUserProfile.nickname,
-            avatar_url: currentUserProfile.avatar_url
+            avatar_url: currentUserProfile.avatar_url,
+            status: 'online'
         }).eq('id', user.id);
 
         if (error) alert("Erro ao salvar perfil.");
@@ -407,8 +431,14 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ profile, setProfile, o
                                         onClick={() => fileInputRef.current?.click()}
                                         className={`w-36 h-36 rounded-[3.5rem] p-1 border-2 border-blue-500 shadow-2xl cursor-pointer transition-all overflow-hidden bg-white dark:bg-white/5`}
                                     >
-                                        <div className="w-full h-full rounded-[3rem] overflow-hidden">
-                                            {profile.image ? <img src={profile.image} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-4xl opacity-20">📷</div>}
+                                        <div className="w-full h-full rounded-[3rem] overflow-hidden flex items-center justify-center">
+                                            {isSavingImage ? (
+                                                <span className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                                            ) : profile.image ? (
+                                                <img src={profile.image} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-4xl opacity-20">📷</div>
+                                            )}
                                         </div>
                                     </div>
                                     <div className="absolute -bottom-1 -right-1 w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center border-4 border-[#f9f9fb] dark:border-[#0b0c10] shadow-lg pointer-events-none">✏️</div>
@@ -601,7 +631,11 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ profile, setProfile, o
                                     onClick={() => userFileInputRef.current?.click()}
                                     className={`w-32 h-32 rounded-[2.5rem] overflow-hidden border-4 shadow-2xl transition-all hover:scale-105 cursor-pointer ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-white'}`}
                                 >
-                                    {currentUserProfile.avatar_url ? (
+                                    {isSavingImage ? (
+                                        <div className="w-full h-full flex items-center justify-center bg-blue-500/10">
+                                            <span className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                                        </div>
+                                    ) : currentUserProfile.avatar_url ? (
                                         <img src={currentUserProfile.avatar_url} className="w-full h-full object-cover" />
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center text-4xl opacity-10">📸</div>
