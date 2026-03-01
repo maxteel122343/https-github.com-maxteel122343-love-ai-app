@@ -233,7 +233,7 @@ function App() {
     }
   };
 
-  const handleCallPartner = async (partnerProfile: PartnerProfile, isAi: boolean = true) => {
+  const handleCallPartner = async (partnerProfile: PartnerProfile, isAi: boolean = true, callId?: string) => {
     if (!user) {
       alert("Faça login para ligar!");
       setShowAuth(true);
@@ -242,6 +242,11 @@ function App() {
 
     // Track outbound call type so we know whether to open HumanCallScreen when accepted
     isOutboundHumanCallRef.current = !isAi;
+
+    // Save the call ID so the UPDATE listener can track it
+    if (callId) {
+      setActiveCallId(callId);
+    }
 
     setActivePartner(partnerProfile);
     setAppState('OUTBOUND_CALLING');

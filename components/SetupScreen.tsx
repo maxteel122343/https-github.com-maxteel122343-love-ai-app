@@ -17,7 +17,7 @@ interface SetupScreenProps {
     user: any;
     currentUserProfile: UserProfile | null;
     onUpdateUserProfile: (profile: UserProfile) => void;
-    onCallPartner: (profile: PartnerProfile, isAi: boolean) => void;
+    onCallPartner: (profile: PartnerProfile, isAi: boolean, callId: string) => void;
     showAuth: boolean;
     setShowAuth: (show: boolean) => void;
 }

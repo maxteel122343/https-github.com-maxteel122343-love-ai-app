@@ -126,11 +126,27 @@ export const HumanCallScreen: React.FC<HumanCallScreenProps> = ({
 
         init();
 
+        // Also listen via Supabase DB for call status updates (handles cases where broadcast is lost)
+        const dbChannel = supabase
+            .channel(`call_db_status_${callId}`)
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'calls',
+                filter: `id=eq.${callId}`
+            }, (payload: any) => {
+                if (payload.new?.status === 'ended') {
+                    handleEnd(false);
+                }
+            })
+            .subscribe();
+
         return () => {
             destroyed = true;
             pcRef.current?.close();
             localStreamRef.current?.getTracks().forEach(t => t.stop());
             channelRef.current?.unsubscribe();
+            dbChannel.unsubscribe();
         };
     }, []);
 

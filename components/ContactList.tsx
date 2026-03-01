@@ -4,7 +4,7 @@ import { UserProfile, Contact, PartnerProfile, Mood, VoiceName, Accent, Callback
 
 interface ContactListProps {
     currentUser: any;
-    onCallPartner: (profile: PartnerProfile, isAi: boolean) => void;
+    onCallPartner: (profile: PartnerProfile, isAi: boolean, callId: string) => void;
     isDark: boolean;
 }
 
@@ -219,21 +219,23 @@ export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPar
             }
         };
 
-        const { error } = await supabase
+        const { data: callData, error } = await supabase
             .from('calls')
             .insert({
                 caller_id: currentUser.id,
                 target_id: targetProfile.id,
                 is_ai_call: isAi,
                 status: 'pending'
-            });
+            })
+            .select()
+            .single();
 
-        if (error) {
+        if (error || !callData) {
             alert("Erro ao sinalizar chamada.");
             return;
         }
 
-        onCallPartner(partnerProfile, isAi);
+        onCallPartner(partnerProfile, isAi, callData.id);
     };
 
     const handleCallContact = async (contact: Contact) => {
@@ -270,22 +272,24 @@ export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPar
         };
 
         // Create call record for signaling
-        const { error } = await supabase
+        const { data: callData, error } = await supabase
             .from('calls')
             .insert({
                 caller_id: currentUser.id,
                 target_id: contact.profile.id,
                 is_ai_call: contact.is_ai_contact,
                 status: 'pending'
-            });
+            })
+            .select()
+            .single();
 
-        if (error) {
+        if (error || !callData) {
             alert("Erro ao sinalizar chamada. Verifique sua conexão.");
             console.error(error);
             return;
         }
 
-        onCallPartner(partnerProfile, contact.is_ai_contact);
+        onCallPartner(partnerProfile, contact.is_ai_contact, callData.id);
     };
 
     return (
