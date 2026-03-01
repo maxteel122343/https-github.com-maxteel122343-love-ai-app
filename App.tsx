@@ -36,6 +36,7 @@ function App() {
   const [showAuth, setShowAuth] = useState(false);
   const [activeCallId, setActiveCallId] = useState<string | null>(null);
   const [callStatus, setCallStatus] = useState<'pending' | 'accepted' | 'rejected' | 'no_answer'>('pending');
+  const [callerProfile, setCallerProfile] = useState<UserProfile | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -254,12 +255,18 @@ function App() {
         filter: `target_id=eq.${user.id}`
       }, async (payload) => {
         const newCall = payload.new as any;
+        console.log("Recebendo nova chamada:", newCall);
+
         if (newCall.status === 'pending') {
           setActiveCallId(newCall.id);
 
+          // Fetch caller profile info
+          const { data: cProfile } = await supabase.from('profiles').select('*').eq('id', newCall.caller_id).single();
+          if (cProfile) setCallerProfile(cProfile);
+
           // AI Handling
           if (newCall.is_ai_call) {
-            // Decision logic for AI
+            console.log("AI está decidindo se atende...");
             const shouldPickUp = await evaluateAiDecision(newCall);
             if (shouldPickUp) {
               await supabase.from('calls').update({ status: 'accepted' }).eq('id', newCall.id);
@@ -268,6 +275,7 @@ function App() {
             }
           } else {
             // Human target
+            console.log("Chamada para humano - Ativando INCOMING");
             setAppState('INCOMING');
           }
         }
@@ -378,6 +386,7 @@ function App() {
       {appState === 'INCOMING' && (
         <IncomingCallScreen
           profile={profile}
+          callerProfile={callerProfile}
           callReason={callReason}
           onAccept={handleAcceptCallback}
           onDecline={handleDeclineCallback}
