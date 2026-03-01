@@ -297,14 +297,24 @@ function App() {
   }, [user, activeCallId]);
 
   const evaluateAiDecision = async (call: any) => {
-    // Simple logic: If relationship score is very low and AI is "Cold", might reject.
-    // If user asked to "always reject" in personality, follow that.
-    // For now, let's keep it 90% chance to pick up unless personality says otherwise.
+    const p = profile.personality.toLowerCase();
 
-    if (profile.personality.toLowerCase().includes("sempre rejeitar")) return false;
-    if (profile.personality.toLowerCase().includes("rejeite ligações")) return false;
+    // 1. Explicit User Instructions
+    if (p.includes("sempre rejeitar") || p.includes("não atenda estranhos")) return false;
+    if (p.includes("sempre atender") || p.includes("atenda tudo")) return true;
 
-    if (profile.relationshipScore < 10) return Math.random() > 0.7; // 30% chance if score is < 10
+    // 2. Trait-based Decisions
+    if (p.includes("fria") || p.includes("distante")) {
+      return Math.random() > 0.6; // 40% chance
+    }
+
+    if (p.includes("ciumenta") || p.includes("possessiva")) {
+      // Might only answer if it's the partner
+      if (call.caller_id !== user.id) return Math.random() > 0.8; // Rarely answers strangers
+    }
+
+    // 3. Status/Relationship Score
+    if (profile.relationshipScore < 20) return Math.random() > 0.5;
 
     return true; // Pick up by default
   };

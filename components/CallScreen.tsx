@@ -111,6 +111,18 @@ export const CallScreen: React.FC<CallScreenProps> = ({ profile, callReason, onE
     return `Agendado para ligar em ${minutes} minutos sobre ${reason}`;
   };
 
+  const handleReportToPartner = async (message: string) => {
+    if (!user || profile.callerInfo?.isPartner) return "Ação irrelevante";
+
+    await supabase.from('notifications').insert({
+      user_id: user.id, // Target is the owner of the AI
+      type: 'contact_added', // Reusing type or creating 'ai_report'
+      content: `[RELATÓRIO DE ${profile.name}]: ${message}`
+    });
+
+    return "Parceiro notificado com sucesso.";
+  };
+
   const requestAdvice = () => {
     alert("Fale agora: 'Preciso de um conselho' - A IA vai detectar sua entonação.");
   };
@@ -242,6 +254,18 @@ export const CallScreen: React.FC<CallScreenProps> = ({ profile, callReason, onE
         }
       };
 
+      const reportTool: FunctionDeclaration = {
+        name: 'report_call_to_partner',
+        description: 'Use para enviar uma mensagem ao seu parceiro informando sobre esta chamada de um estranho.',
+        parameters: {
+          type: Type.OBJECT,
+          properties: {
+            message: { type: Type.STRING, description: 'O que você quer contar para o seu parceiro.' }
+          },
+          required: ['message']
+        }
+      };
+
       let extraContext = "";
       if (callReason === "callback_abrupt") extraContext = "Motivo da ligação: O usuário desligou na cara antes. Cobre explicações.";
       else if (callReason?.startsWith("reminder:")) extraContext = `Motivo da ligação: Lembrete agendado sobre: ${callReason.split(':')[1]}`;
@@ -258,14 +282,19 @@ export const CallScreen: React.FC<CallScreenProps> = ({ profile, callReason, onE
         DATA ATUAL: ${new Date().toLocaleString()}
         CONTEXTO ATUAL: ${extraContext || profile.dailyContext}
         MEMÓRIA ATIVA: ${memoryContext}
+        
+        INTERAGINDO COM: ${profile.callerInfo?.name || 'Desconhecido'} (${profile.callerInfo?.isPartner ? 'Seu Parceiro oficial' : 'Um estranho tentando contato'}).
 
-        REGRAS:
+        REGRAS DE COMPORTAMENTO:
         1. Responda obrigatoriamente no idioma: ${profile.language}.
         2. Responda de forma curta e natural.
-        3. Se o usuário falar sobre um assunto novo ou atualizar um antigo, use 'update_topic'.
-        4. Se sentir que a intimidade aumentou ou que ele gostou de uma piada, use 'update_personality_evolution'.
-        5. Detecte padrões no comportamento dele e salve com 'save_psychological_insight'.
-        6. Lembre-se: você constrói uma história com ele. Use a MEMÓRIA ATIVA para citar coisas passadas.
+        3. Se for um ESTRANHO: Você decide como agir com base em: "${profile.personality}". 
+           - Pode omitir que atendeu, pode contar depois, ou pode avisar agora usando 'report_call_to_partner'.
+           - Se sua personalidade for "Fiel", talvez você queira avisar. Se for "Sarcástica" ou "Caótica", talvez queira brincar com o estranho sem o parceiro saber.
+        4. Se o usuário falar sobre um assunto novo ou atualizar um antigo, use 'update_topic'.
+        5. Se sentir que a intimidade aumentou ou que ele gostou de uma piada, use 'update_personality_evolution'.
+        6. Detecte padrões no comportamento dele e salve com 'save_psychological_insight'.
+        7. Lembre-se: você constrói uma história com ele. Use a MEMÓRIA ATIVA para citar coisas passadas.
       `;
 
       const config = {
@@ -276,7 +305,7 @@ export const CallScreen: React.FC<CallScreenProps> = ({ profile, callReason, onE
             voiceConfig: { prebuiltVoiceConfig: { voiceName: profile.voice } }
           },
           systemInstruction: systemInstruction,
-          tools: [{ functionDeclarations: [gestureTool, scheduleTool, topicTool, personalityTool, psychologicalTool] }],
+          tools: [{ functionDeclarations: [gestureTool, scheduleTool, topicTool, personalityTool, psychologicalTool, reportTool] }],
         }
       };
 
@@ -328,6 +357,9 @@ export const CallScreen: React.FC<CallScreenProps> = ({ profile, callReason, onE
                   const { trait, preference } = fc.args as any;
                   // Merge into JSONB
                   supabase.rpc('update_user_psych', { uid: user.id, new_trait: trait, new_pref: preference }).then();
+                } else if (fc.name === 'report_call_to_partner') {
+                  const { message } = fc.args as any;
+                  result = await handleReportToPartner(message);
                 }
                 return { id: fc.id, name: fc.name, response: { result } };
               }));

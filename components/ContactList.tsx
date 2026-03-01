@@ -184,10 +184,15 @@ export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPar
             accent: targetProfile.ai_settings?.accent || Accent.PAULISTA,
             intensity: targetProfile.ai_settings?.intensity || CallbackIntensity.MEDIUM,
             theme: isDark ? 'dark' : 'light',
-            relationshipScore: 80, // Lower initial score for strangers
+            relationshipScore: currentUser.id === targetProfile.id ? 100 : 80,
             history: [],
             language: targetProfile.ai_settings?.language || PlatformLanguage.PT,
-            gemini_api_key: targetProfile.ai_settings?.gemini_api_key
+            gemini_api_key: targetProfile.ai_settings?.gemini_api_key,
+            callerInfo: {
+                id: currentUser.id,
+                name: myProfile?.display_name || 'Alguém',
+                isPartner: currentUser.id === targetProfile.id
+            }
         };
 
         const { error } = await supabase
@@ -324,7 +329,11 @@ export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPar
                                 <div key={result.id} className={`p-6 rounded-[2.5rem] border-2 border-blue-600/20 ${cardClasses} shadow-xl hover:border-blue-600/40 transition-all group`}>
                                     <div className="flex flex-col sm:flex-row items-center gap-5">
                                         <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/10 to-indigo-600/10 flex items-center justify-center text-2xl overflow-hidden border border-blue-500/10 group-hover:scale-105 transition-transform">
-                                            {result.avatar_url ? <img src={result.avatar_url} className="w-full h-full object-cover" /> : '👤'}
+                                            {result.ai_settings?.image ? (
+                                                <img src={result.ai_settings.image} className="w-full h-full object-cover" />
+                                            ) : result.avatar_url ? (
+                                                <img src={result.avatar_url} className="w-full h-full object-cover" />
+                                            ) : '👤'}
                                         </div>
                                         <div className="flex-1 text-center sm:text-left">
                                             <h4 className="text-lg font-black italic tracking-tighter uppercase">{result.display_name}</h4>
@@ -397,16 +406,20 @@ export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPar
                                 className={`flex items-center gap-5 p-6 border-b transition-all duration-300 ${itemClasses} last:border-0 hover:bg-blue-600/5 group`}
                             >
                                 <div className={`w-14 h-14 rounded-[1.5rem] flex items-center justify-center text-2xl shadow-sm transition-transform group-hover:scale-110 ${contact.is_ai_contact ? 'bg-pink-600/10 text-pink-600' : 'bg-blue-600/10 text-blue-600'}`}>
-                                    {contact.profile?.avatar_url ? (
-                                        <img src={contact.profile.avatar_url} className="w-full h-full object-cover rounded-[1.5rem]" />
+                                    {contact.is_ai_contact ? (
+                                        contact.profile?.ai_settings?.image ? (
+                                            <img src={contact.profile.ai_settings.image} className="w-full h-full object-cover rounded-[1.5rem]" />
+                                        ) : '⚡'
                                     ) : (
-                                        contact.is_ai_contact ? '⚡' : '👤'
+                                        contact.profile?.avatar_url ? (
+                                            <img src={contact.profile.avatar_url} className="w-full h-full object-cover rounded-[1.5rem]" />
+                                        ) : '👤'
                                     )}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <h4 className="font-black text-base tracking-tight truncate italic">{contact.alias}</h4>
+                                    <h4 className="font-black text-base tracking-tight truncate italic">{contact.alias || contact.profile?.display_name}</h4>
                                     <div className="flex items-center gap-2 mt-1">
-                                        <p className="text-[9px] font-black opacity-30 uppercase tracking-widest truncate">
+                                        <p className="text-[10px] font-black opacity-30 uppercase tracking-[0.2em] truncate">
                                             {contact.is_ai_contact
                                                 ? formatDisplayNumber(contact.profile?.ai_number || '', true)
                                                 : formatDisplayNumber(contact.profile?.personal_number || '', false)}

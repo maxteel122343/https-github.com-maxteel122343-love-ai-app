@@ -94,6 +94,11 @@ export interface PartnerProfile {
   history: CallLog[];
   language: PlatformLanguage;
   gemini_api_key?: string;
+  callerInfo?: {
+    id: string;
+    name: string;
+    isPartner: boolean;
+  };
 }
 
 export const VOICE_META: Record<VoiceName, { gender: 'Male' | 'Female', label: string }> = {
