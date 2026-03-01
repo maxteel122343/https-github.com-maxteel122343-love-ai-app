@@ -63,8 +63,12 @@ export const QuickChatTab: React.FC<QuickChatTabProps> = ({ currentUser, profile
     const handleCallContact = (contact: Contact) => {
         if (!contact.profile) return;
         const p: PartnerProfile = {
-            name: contact.alias || contact.profile.display_name,
-            image: contact.profile.ai_settings?.image || contact.profile.avatar_url || null,
+            name: contact.is_ai_contact
+                ? (contact.alias || contact.profile.ai_settings?.name || contact.profile.display_name)
+                : (contact.alias || contact.profile.display_name),
+            image: contact.is_ai_contact
+                ? (contact.profile.ai_settings?.image || contact.profile.avatar_url || null)
+                : (contact.profile.avatar_url || null),
             personality: contact.profile.ai_settings?.personality || "Misteriosa...",
             dailyContext: "",
             mood: contact.profile.ai_settings?.mood || Mood.LOVE,
@@ -234,7 +238,9 @@ export const QuickChatTab: React.FC<QuickChatTabProps> = ({ currentUser, profile
                             </div>
                             <div className="flex-1 min-w-0">
                                 <div className="flex justify-between items-baseline mb-1">
-                                    <h4 className={`font-black text-base italic tracking-tighter uppercase ${textMain}`}>{contact.alias || contact.profile?.display_name}</h4>
+                                    <h4 className={`font-black text-base italic tracking-tighter uppercase ${textMain}`}>
+                                        {contact.alias || (contact.is_ai_contact && contact.profile?.ai_settings?.name) || contact.profile?.display_name}
+                                    </h4>
                                     <span className="text-[10px] font-black uppercase tracking-widest opacity-20">Fixado</span>
                                 </div>
                                 <p className={`text-[13px] font-medium opacity-30 line-clamp-1 mb-1 italic`}>
@@ -294,7 +300,9 @@ export const QuickChatTab: React.FC<QuickChatTabProps> = ({ currentUser, profile
                                         {c.profile?.avatar_url && <img src={c.profile.avatar_url} className="w-full h-full object-cover" />}
                                     </div>
                                     <div className="flex-1 text-left min-w-0">
-                                        <p className={`font-black text-[14px] italic tracking-tight truncate uppercase ${textMain}`}>{c.alias || c.profile?.display_name}</p>
+                                        <p className={`font-black text-[14px] italic tracking-tight truncate uppercase ${textMain}`}>
+                                            {c.alias || (c.is_ai_contact && c.profile?.ai_settings?.name) || c.profile?.display_name}
+                                        </p>
                                         <p className="text-[9px] font-black opacity-30 uppercase tracking-widest">{c.is_ai_contact ? 'I.A.' : 'Humano'}</p>
                                     </div>
                                     <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${pinnedIds.includes(c.id) ? 'bg-blue-600 text-white shadow-lg' : 'bg-black/5 dark:bg-white/10 text-slate-400'}`}>

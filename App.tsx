@@ -347,8 +347,12 @@ function App() {
 
             // Build temporary partner profile from caller's data
             const incomingPartner: PartnerProfile = {
-              name: cProfile.nickname || cProfile.display_name,
-              image: cProfile.ai_settings?.image || cProfile.avatar_url,
+              name: newCall.is_ai_call
+                ? (cProfile.ai_settings?.name || `AI ${cProfile.display_name}`)
+                : (cProfile.nickname || cProfile.display_name),
+              image: newCall.is_ai_call
+                ? (cProfile.ai_settings?.image || cProfile.avatar_url)
+                : cProfile.avatar_url,
               personality: cProfile.ai_settings?.personality || "Um usuário do Warm Connections.",
               dailyContext: "",
               mood: cProfile.ai_settings?.mood || Mood.FUNNY,

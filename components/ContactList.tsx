@@ -189,8 +189,8 @@ export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPar
 
     const handleCallDirect = async (targetProfile: UserProfile, isAi: boolean) => {
         const partnerProfile: PartnerProfile = {
-            name: isAi ? `AI ${targetProfile.display_name}` : targetProfile.display_name,
-            image: targetProfile.avatar_url || targetProfile.ai_settings?.image || null,
+            name: isAi ? (targetProfile.ai_settings?.name || `AI ${targetProfile.display_name}`) : targetProfile.display_name,
+            image: isAi ? (targetProfile.ai_settings?.image || targetProfile.avatar_url || null) : (targetProfile.avatar_url || null),
             personality: targetProfile.ai_settings?.personality || "Personalidade misteriosa...",
             dailyContext: "",
             mood: targetProfile.ai_settings?.mood || Mood.LOVE,
@@ -240,8 +240,12 @@ export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPar
         if (!contact.profile || !currentUser) return;
 
         const partnerProfile: PartnerProfile = {
-            name: contact.is_ai_contact ? `AI ${contact.profile.display_name}` : contact.profile.display_name,
-            image: contact.profile.avatar_url || contact.profile.ai_settings?.image || null,
+            name: contact.is_ai_contact
+                ? (contact.alias || contact.profile.ai_settings?.name || `AI ${contact.profile.display_name}`)
+                : (contact.alias || contact.profile.display_name),
+            image: contact.is_ai_contact
+                ? (contact.profile.ai_settings?.image || contact.profile.avatar_url || null)
+                : (contact.profile.avatar_url || null),
             personality: contact.profile.ai_settings?.personality || "Personalidade misteriosa...",
             dailyContext: "",
             mood: contact.profile.ai_settings?.mood || Mood.LOVE,
