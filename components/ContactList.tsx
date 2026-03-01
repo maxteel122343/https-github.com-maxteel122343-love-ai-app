@@ -91,7 +91,7 @@ export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPar
                 owner_id: currentUser.id,
                 target_id: profile.id,
                 is_ai_contact: isAi,
-                alias: profile.nickname || profile.display_name
+                alias: isAi ? (profile.ai_settings?.name || profile.nickname || profile.display_name) : (profile.nickname || profile.display_name)
             });
 
         if (!error) {
@@ -201,6 +201,16 @@ export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPar
             relationshipScore: currentUser.id === targetProfile.id ? 100 : 80,
             history: [],
             language: targetProfile.ai_settings?.language || PlatformLanguage.PT,
+            gender: targetProfile.ai_settings?.gender || 'Feminino',
+            sexuality: targetProfile.ai_settings?.sexuality || 'Heterosexual',
+            bestFriend: targetProfile.ai_settings?.bestFriend || (targetProfile.nickname || targetProfile.display_name),
+            originalPartnerId: targetProfile.ai_settings?.originalPartnerId || targetProfile.id,
+            originalPartnerNumber: targetProfile.ai_settings?.originalPartnerNumber || targetProfile.personal_number,
+            originalPartnerNickname: targetProfile.ai_settings?.originalPartnerNickname || (targetProfile.nickname || targetProfile.display_name),
+            currentPartnerId: targetProfile.ai_settings?.currentPartnerId || targetProfile.id,
+            currentPartnerNumber: targetProfile.ai_settings?.currentPartnerNumber || targetProfile.personal_number,
+            currentPartnerNickname: targetProfile.ai_settings?.currentPartnerNickname || (targetProfile.nickname || targetProfile.display_name),
+            ai_number: targetProfile.ai_number,
             gemini_api_key: targetProfile.ai_settings?.gemini_api_key,
             callerInfo: {
                 id: currentUser.id,
@@ -242,6 +252,16 @@ export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPar
             relationshipScore: 100,
             history: [],
             language: contact.profile.ai_settings?.language || PlatformLanguage.PT,
+            gender: contact.profile.ai_settings?.gender || 'Feminino',
+            sexuality: contact.profile.ai_settings?.sexuality || 'Heterosexual',
+            bestFriend: contact.profile.ai_settings?.bestFriend || (contact.profile.nickname || contact.profile.display_name),
+            originalPartnerId: contact.profile.ai_settings?.originalPartnerId || contact.profile.id,
+            originalPartnerNumber: contact.profile.ai_settings?.originalPartnerNumber || contact.profile.personal_number,
+            originalPartnerNickname: contact.profile.ai_settings?.originalPartnerNickname || (contact.profile.nickname || contact.profile.display_name),
+            currentPartnerId: contact.profile.ai_settings?.currentPartnerId || contact.profile.id,
+            currentPartnerNumber: contact.profile.ai_settings?.currentPartnerNumber || contact.profile.personal_number,
+            currentPartnerNickname: contact.profile.ai_settings?.currentPartnerNickname || (contact.profile.nickname || contact.profile.display_name),
+            ai_number: contact.profile.ai_number,
             gemini_api_key: contact.profile.ai_settings?.gemini_api_key
         };
 
@@ -350,7 +370,12 @@ export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPar
                                             ) : '👤'}
                                         </div>
                                         <div className="flex-1 text-center sm:text-left">
-                                            <h4 className="text-lg font-black italic tracking-tighter uppercase">{result.nickname || result.display_name}</h4>
+                                            <h4 className="text-lg font-black italic tracking-tighter uppercase">
+                                                {result.nickname || result.display_name}
+                                                {result.ai_settings?.name && (
+                                                    <span className="text-[10px] font-black opacity-30 ml-2"> (AI: {result.ai_settings.name})</span>
+                                                )}
+                                            </h4>
                                             <div className="flex flex-wrap justify-center sm:justify-start gap-4 mt-1">
                                                 <div className="flex items-center gap-1.5 opacity-40">
                                                     <span className="text-[9px] font-black uppercase tracking-widest text-blue-500">Hu</span>
@@ -431,7 +456,12 @@ export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPar
                                     )}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <h4 className="font-black text-base tracking-tight truncate italic">{contact.alias || contact.profile?.nickname || contact.profile?.display_name}</h4>
+                                    <h4 className="font-black text-base tracking-tight truncate italic">
+                                        {contact.is_ai_contact
+                                            ? (contact.alias === (contact.profile?.nickname || contact.profile?.display_name) || !contact.alias ? (contact.profile?.ai_settings?.name || contact.alias || contact.profile?.nickname || contact.profile?.display_name) : contact.alias)
+                                            : (contact.alias || contact.profile?.nickname || contact.profile?.display_name)
+                                        }
+                                    </h4>
                                     <div className="flex items-center gap-2 mt-1">
                                         <p className="text-[10px] font-black opacity-30 uppercase tracking-[0.2em] truncate">
                                             {contact.is_ai_contact

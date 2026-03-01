@@ -101,10 +101,17 @@ export const CallScreen: React.FC<CallScreenProps> = ({ profile, callReason, onE
     setScheduledCall(newSchedule);
 
     if (user) {
+      // Use profile.originalPartnerId (AI's owner) if it's a call with someone else's AI
+      // otherwise fallback to the current user's id
+      const targetOwnerId = profile.originalPartnerId || user.id;
+
       await supabase.from('reminders').insert({
-        owner_id: user.id,
+        owner_id: targetOwnerId,
         title: reason,
-        trigger_at: new Date(triggerTime).toISOString()
+        trigger_at: new Date(triggerTime).toISOString(),
+        creator_ai_id: profile.originalPartnerId,
+        creator_ai_name: profile.name,
+        creator_ai_number: profile.ai_number
       });
     }
 
@@ -170,6 +177,7 @@ export const CallScreen: React.FC<CallScreenProps> = ({ profile, callReason, onE
         const { data: topics } = await supabase.from('topics').select('*').eq('user_id', user.id).eq('status', 'active');
         const { data: psych } = await supabase.from('user_profile_analysis').select('*').eq('user_id', user.id).single();
         const { data: ai_profile } = await supabase.from('ai_profiles').select('*').eq('user_id', user.id).single();
+        const { data: diary } = await supabase.from('reminders').select('*').eq('owner_id', user.id).eq('is_completed', false).order('trigger_at', { ascending: true });
 
         if (topics && topics.length > 0) {
           memoryContext += `\nASSUNTOS EM PAUTA: ${topics.map(t => `${t.title} (Interesse: ${t.interest_level})`).join(', ')}`;
@@ -179,6 +187,11 @@ export const CallScreen: React.FC<CallScreenProps> = ({ profile, callReason, onE
         }
         if (ai_profile) {
           memoryContext += `\nSUA EVOLUÇÃO: Intimidade ${ai_profile.intimacy_level}%, Humor ${ai_profile.humor_usage}%`;
+        }
+        if (diary && diary.length > 0) {
+          memoryContext += `\nAGENDA ATIVA:\n${diary.map(r =>
+            `- "${r.title}" em ${new Date(r.trigger_at).toLocaleString()} (Agendado por: ${r.creator_ai_name || 'Humano'})`
+          ).join('\n')}`;
         }
       }
 

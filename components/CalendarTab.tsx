@@ -186,9 +186,25 @@ export const CalendarTab: React.FC<CalendarTabProps> = ({ user, profile, setProf
                                         <div className="w-12 h-12 rounded-2xl bg-blue-500/5 flex items-center justify-center text-xl">📅</div>
                                         <div className="flex-1 min-w-0">
                                             <h4 className="font-bold text-[13px] truncate tracking-tight">{r.title}</h4>
-                                            <p className="text-[10px] opacity-40 font-black uppercase mt-1">
-                                                {new Date(r.trigger_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                                            </p>
+
+                                            {r.creator_ai_name && (
+                                                <div className="flex items-center gap-1.5 mt-1.5 px-2 py-0.5 rounded-full bg-pink-500/5 border border-pink-500/10 w-fit">
+                                                    <span className="text-[7px] font-black uppercase tracking-tighter text-pink-500/40">Agendado por</span>
+                                                    <span className="text-[8px] font-black italic text-pink-600 uppercase tracking-tight">{r.creator_ai_name}</span>
+                                                    {r.creator_ai_number && (
+                                                        <span className="text-[7px] font-bold opacity-30">({r.creator_ai_number})</span>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            <div className="flex items-center gap-3 mt-1.5">
+                                                <p className="text-[10px] font-black opacity-40 uppercase">
+                                                    ⏰ {new Date(r.trigger_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                                </p>
+                                                <p className="text-[8px] font-bold opacity-20 uppercase tracking-widest whitespace-nowrap">
+                                                    Criado: {new Date(r.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })} {new Date(r.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                                </p>
+                                            </div>
                                         </div>
                                         <div className="flex gap-1 opacity-10 group-hover:opacity-100 transition-opacity">
                                             <button onClick={() => setEditReminder(r)} className="p-2 hover:bg-blue-500/10 rounded-xl text-blue-500 transition-colors">✏️</button>

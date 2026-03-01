@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
-import { MOOD_EMOJIS } from '../types';
+import { MOOD_EMOJIS, PartnerProfile, UserProfile, CallbackIntensity, Mood, VoiceName, Accent, PlatformLanguage } from '../types';
 
 interface MemoryHistorySectionProps {
     user: any;
+    profile: PartnerProfile;
+    currentUserProfile: UserProfile | null;
     isDark: boolean;
 }
 
-type SubTab = 'memory' | 'history' | 'personality' | 'user_profile' | 'strategy' | 'external';
+type SubTab = 'status' | 'memory' | 'history' | 'personality' | 'user_profile' | 'strategy' | 'external';
 
-export const MemoryHistorySection: React.FC<MemoryHistorySectionProps> = ({ user, isDark }) => {
-    const [subTab, setSubTab] = useState<SubTab>('memory');
+export const MemoryHistorySection: React.FC<MemoryHistorySectionProps> = ({ user, profile, currentUserProfile, isDark }) => {
+    const [subTab, setSubTab] = useState<SubTab>('status');
     const [loading, setLoading] = useState(false);
 
     // Data states
@@ -72,6 +74,7 @@ export const MemoryHistorySection: React.FC<MemoryHistorySectionProps> = ({ user
             <div className="w-full overflow-x-auto no-scrollbar py-2">
                 <div className={`inline-flex gap-2 p-1.5 rounded-[2rem] ${isDark ? 'bg-white/5' : 'bg-slate-200/50'} border ${borderClass}`}>
                     {[
+                        { id: 'status', label: 'Status', icon: '📝', desc: 'Identidade' },
                         { id: 'memory', label: 'Cérebro', icon: '🧠', desc: 'Assuntos' },
                         { id: 'history', label: 'Voz', icon: '📞', desc: 'Chamadas' },
                         { id: 'personality', label: 'Ego', icon: '🎭', desc: 'Humor' },
@@ -102,6 +105,196 @@ export const MemoryHistorySection: React.FC<MemoryHistorySectionProps> = ({ user
                     </div>
                 ) : (
                     <div className="animate-in fade-in duration-700">
+                        {subTab === 'status' && (
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                {/* Main Identity Card */}
+                                <section className={`lg:col-span-2 p-10 rounded-[3.5rem] border relative overflow-hidden ${cardClasses}`}>
+                                    <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/5 blur-[100px] rounded-full" />
+
+                                    <div className="flex flex-col sm:flex-row gap-8 items-start mb-12 relative z-10">
+                                        <div className="w-40 h-40 rounded-[3rem] overflow-hidden border-4 border-blue-500 shadow-2xl shrink-0 group">
+                                            {profile.image ? (
+                                                <img src={profile.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                                            ) : (
+                                                <div className="w-full h-full bg-slate-200 dark:bg-white/5 flex items-center justify-center text-5xl">📷</div>
+                                            )}
+                                        </div>
+                                        <div className="flex-1 space-y-4">
+                                            <div>
+                                                <h3 className="text-4xl font-black italic tracking-tighter uppercase leading-none">{profile.name}</h3>
+                                                <p className="text-[10px] font-black text-blue-500 uppercase tracking-[0.3em] mt-2">Protocolo de Identidade Ativo</p>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-6 pt-4">
+                                                <div>
+                                                    <p className="text-[9px] font-black uppercase tracking-widest opacity-30 mb-1">Gênero</p>
+                                                    <p className="text-sm font-bold">{profile.gender || 'Não definido'}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[9px] font-black uppercase tracking-widest opacity-30 mb-1">Sexualidade</p>
+                                                    <p className="text-sm font-bold">{profile.sexuality || 'Não definido'}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[9px] font-black uppercase tracking-widest opacity-30 mb-1">Idioma de Operação</p>
+                                                    <p className="text-sm font-bold">{profile.language}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Relationship Status & Timeline */}
+                                    <div className={`p-8 rounded-[2.5rem] border ${itemClasses} mb-8 relative overflow-hidden`}>
+                                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-8 relative z-10">
+                                            <div>
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-blue-600 mb-1">Status do Vínculo</p>
+                                                <h4 className={`text-2xl font-black italic uppercase tracking-tighter ${profile.relationshipScore > 80 ? 'text-rose-500' :
+                                                        profile.relationshipScore > 50 ? 'text-emerald-500' :
+                                                            profile.relationshipScore > 20 ? 'text-cyan-500' : 'text-blue-500'
+                                                    }`}>
+                                                    {profile.relationshipScore > 80 ? 'Apaixonado' :
+                                                        profile.relationshipScore > 50 ? 'Estável' :
+                                                            profile.relationshipScore > 20 ? 'Esfriando' : 'Crítico'}
+                                                    <span className="text-xs ml-2 opacity-40">({profile.relationshipScore.toFixed(1)}%)</span>
+                                                </h4>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-[10px] font-black uppercase tracking-widest opacity-30 mb-1">Tempo de União</p>
+                                                <p className="text-sm font-black italic">
+                                                    {profile.relationshipStartedAt ? (() => {
+                                                        const start = new Date(profile.relationshipStartedAt).getTime();
+                                                        const now = profile.relationshipEndedAt ? new Date(profile.relationshipEndedAt).getTime() : Date.now();
+                                                        const diff = now - start;
+                                                        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                                                        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                                                        return days > 0 ? `${days}d ${hours}h` : `${hours}h`;
+                                                    })() : 'Iniciando...'}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-6 relative z-10">
+                                            <div className="h-2 w-full bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
+                                                <div
+                                                    className={`h-full transition-all duration-1000 ${profile.relationshipScore > 80 ? 'bg-rose-500' :
+                                                            profile.relationshipScore > 50 ? 'bg-emerald-500' :
+                                                                profile.relationshipScore > 20 ? 'bg-cyan-500' : 'bg-blue-500'
+                                                        }`}
+                                                    style={{ width: `${profile.relationshipScore}%` }}
+                                                />
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="p-4 rounded-2xl bg-white/5 border border-inherit">
+                                                    <p className="text-[8px] font-black uppercase tracking-widest opacity-30 mb-1">Início do Ciclo</p>
+                                                    <p className="text-[11px] font-bold">{profile.relationshipStartedAt ? new Date(profile.relationshipStartedAt).toLocaleDateString() : '--/--/----'}</p>
+                                                </div>
+                                                <div className="p-4 rounded-2xl bg-white/5 border border-inherit">
+                                                    <p className="text-[8px] font-black uppercase tracking-widest opacity-30 mb-1">{profile.relationshipEndedAt ? 'Término' : 'Vínculo Ativo'}</p>
+                                                    <p className={`text-[11px] font-bold ${profile.relationshipEndedAt ? 'text-rose-500' : 'text-emerald-500'}`}>
+                                                        {profile.relationshipEndedAt ? new Date(profile.relationshipEndedAt).toLocaleDateString() : 'ONLINE'}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className={`p-8 rounded-[2.5rem] border ${itemClasses} mb-8`}>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-blue-600 mb-4 ml-2">Prompt de Personalidade</p>
+                                        <p className="text-sm font-medium leading-relaxed italic opacity-80">"{profile.personality}"</p>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div className={`p-6 rounded-[2rem] border ${itemClasses}`}>
+                                            <p className="text-[9px] font-black uppercase tracking-widest opacity-30 mb-3">Sotaque</p>
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-lg overflow-hidden bg-white/10 shrink-0">
+                                                    <span className="w-full h-full flex items-center justify-center text-xs">🇧🇷</span>
+                                                </div>
+                                                <p className="text-xs font-black uppercase tracking-widest">{profile.accent}</p>
+                                            </div>
+                                        </div>
+                                        <div className={`p-6 rounded-[2rem] border ${itemClasses}`}>
+                                            <p className="text-[9px] font-black uppercase tracking-widest opacity-30 mb-3">Voz da IA</p>
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-lg bg-rose-500 mt-1 flex items-center justify-center text-xs text-white shrink-0">🎙️</div>
+                                                <p className="text-xs font-black uppercase tracking-widest">{profile.voice}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                {/* Connections/Relational Data */}
+                                <section className="space-y-8">
+                                    <div className={`p-10 rounded-[3.5rem] border relative overflow-hidden ${cardClasses}`}>
+                                        <h4 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-30 mb-10">Conexões de Rede</h4>
+                                        <div className="space-y-8 relative z-10">
+                                            <div className="group">
+                                                <p className="text-[9px] font-black uppercase tracking-widest text-blue-500 mb-4">Parceiro Originário</p>
+                                                <div className="space-y-4">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-10 h-10 rounded-xl bg-white dark:bg-white/5 flex items-center justify-center text-xl shadow-sm italic">🧬</div>
+                                                        <div>
+                                                            <p className="text-[13px] font-black italic tracking-tight">{profile.originalPartnerNickname || 'N/A'}</p>
+                                                            <p className="text-[9px] font-bold opacity-30 uppercase tracking-widest">Apelido Definido</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="pl-14 space-y-1">
+                                                        <p className="text-[8px] font-black opacity-30 uppercase">ID: {profile.originalPartnerId || 'Sem Registro'}</p>
+                                                        <p className="text-[8px] font-black opacity-30 uppercase">NUM: {profile.originalPartnerNumber || 'Sem Registro'}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="group pt-8 border-t border-inherit">
+                                                <p className="text-[9px] font-black uppercase tracking-widest text-rose-500 mb-4">Parceiro Atual</p>
+                                                <div className="space-y-4">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-10 h-10 rounded-xl bg-white dark:bg-white/5 flex items-center justify-center text-xl shadow-sm italic">💞</div>
+                                                        <div>
+                                                            <p className="text-[13px] font-black italic tracking-tight">{profile.currentPartnerNickname || (currentUserProfile?.nickname || currentUserProfile?.display_name) || 'Usuário Local'}</p>
+                                                            <p className="text-[9px] font-bold opacity-30 uppercase tracking-widest">Vínculo Ativo</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="pl-14 space-y-1">
+                                                        <p className="text-[8px] font-black opacity-30 uppercase">ID: {profile.currentPartnerId || currentUserProfile?.id || 'N/A'}</p>
+                                                        <p className="text-[8px] font-black opacity-30 uppercase">NUM: {profile.currentPartnerNumber || currentUserProfile?.personal_number || 'N/A'}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className={`p-10 rounded-[3.5rem] border relative overflow-hidden ${cardClasses}`}>
+                                        <h4 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-30 mb-10">Telemetria de Contato</h4>
+                                        <div className="space-y-6 relative z-10">
+                                            <div>
+                                                <p className="text-[9px] font-black uppercase tracking-widest opacity-40 mb-2 ml-1">Número da IA</p>
+                                                <div className={`p-4 rounded-2xl border ${itemClasses} font-mono text-xs flex justify-between items-center group cursor-copy active:scale-95 transition-all`}>
+                                                    <span>{currentUserProfile?.ai_number || 'N/A'}</span>
+                                                    <span className="opacity-0 group-hover:opacity-30 transition-opacity">📋</span>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <p className="text-[9px] font-black uppercase tracking-widest opacity-40 mb-2 ml-1">Número do Parceiro</p>
+                                                <div className={`p-4 rounded-2xl border ${itemClasses} font-mono text-xs flex justify-between items-center group cursor-copy active:scale-95 transition-all`}>
+                                                    <span>{currentUserProfile?.personal_number || 'N/A'}</span>
+                                                    <span className="opacity-0 group-hover:opacity-30 transition-opacity">📋</span>
+                                                </div>
+                                            </div>
+                                            <div className="pt-4">
+                                                <div className="flex justify-between items-center mb-2 px-1">
+                                                    <p className="text-[9px] font-black uppercase tracking-widest opacity-40">Intensidade</p>
+                                                    <span className="text-[9px] font-black text-blue-500 uppercase tracking-widest">{profile.intensity.split(' ')[0]}</span>
+                                                </div>
+                                                <div className="h-1.5 w-full bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
+                                                    <div className={`h-full bg-blue-600 shadow-[0_0_10px_rgba(37,99,235,0.3)] transition-all duration-1000`} style={{ width: profile.intensity.includes('Alta') ? '100%' : profile.intensity.includes('Média') ? '50%' : '15%' }} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </section>
+                            </div>
+                        )}
                         {subTab === 'memory' && (
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                 {/* Topics Section */}

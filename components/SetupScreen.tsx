@@ -415,7 +415,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ profile, setProfile, o
                     )}
 
                     {activeTab === 'memory' && user && (
-                        <div className="w-full"><MemoryHistorySection user={user} isDark={isDark} /></div>
+                        <div className="w-full"><MemoryHistorySection user={user} profile={profile} currentUserProfile={currentUserProfile} isDark={isDark} /></div>
                     )}
 
                     {activeTab === 'contacts' && user && (
@@ -452,6 +452,40 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ profile, setProfile, o
                                     placeholder="NOME DA PARCEIRA"
                                 />
                                 <p className="text-[10px] font-bold uppercase tracking-[0.3em] opacity-30 mt-2">Personalização da Identidade</p>
+
+                                <div className="grid grid-cols-2 gap-4 mt-8 w-full max-w-sm">
+                                    <div className="flex flex-col items-center">
+                                        <input
+                                            type="text"
+                                            value={profile.gender}
+                                            onChange={(e) => updateProfileAndSync(prev => ({ ...prev, gender: e.target.value }))}
+                                            className="text-lg font-bold italic tracking-tighter bg-transparent border-b border-blue-500/20 text-center outline-none w-full pb-1 focus:border-blue-500 transition-colors"
+                                            placeholder="GÊNERO"
+                                        />
+                                        <p className="text-[8px] font-black uppercase tracking-widest opacity-20 mt-2">Gênero</p>
+                                    </div>
+                                    <div className="flex flex-col items-center">
+                                        <input
+                                            type="text"
+                                            value={profile.sexuality}
+                                            onChange={(e) => updateProfileAndSync(prev => ({ ...prev, sexuality: e.target.value }))}
+                                            className="text-lg font-bold italic tracking-tighter bg-transparent border-b border-blue-500/20 text-center outline-none w-full pb-1 focus:border-blue-500 transition-colors"
+                                            placeholder="SEXUALIDADE"
+                                        />
+                                        <p className="text-[8px] font-black uppercase tracking-widest opacity-20 mt-2">Sexualidade</p>
+                                    </div>
+                                </div>
+
+                                <div className="mt-8 flex flex-col items-center w-full max-w-sm">
+                                    <input
+                                        type="text"
+                                        value={profile.bestFriend}
+                                        onChange={(e) => updateProfileAndSync(prev => ({ ...prev, bestFriend: e.target.value }))}
+                                        className="text-lg font-bold italic tracking-tighter bg-transparent border-b border-blue-500/20 text-center outline-none w-full pb-1 focus:border-blue-500 transition-colors"
+                                        placeholder="MELHOR AMIGO"
+                                    />
+                                    <p className="text-[8px] font-black uppercase tracking-widest opacity-20 mt-2">Melhor Amigo (Alfa)</p>
+                                </div>
                             </div>
 
                             {/* Section: Gemini Vision */}
@@ -558,6 +592,99 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ profile, setProfile, o
                                                 {intensity}
                                             </button>
                                         ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Section: Relational Tracking */}
+                            <div className={`p-10 rounded-[3rem] border ${cardClasses}`}>
+                                <div className="flex justify-between items-center mb-10">
+                                    <h3 className="text-sm font-bold uppercase tracking-widest opacity-30">Relacionamentos & Vínculos</h3>
+                                    <span className="text-[9px] font-black px-2 py-0.5 bg-blue-500/10 text-blue-500 rounded-lg">PROTOCOLO ALFA</span>
+                                </div>
+
+                                <div className="space-y-12">
+                                    {/* Original Partner */}
+                                    <div className={`p-6 rounded-[2rem] border ${inputClasses} border-opacity-30`}>
+                                        <div className="flex items-center gap-3 mb-6">
+                                            <span className="text-lg">🧬</span>
+                                            <div>
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-blue-600">Parceiro Originário</p>
+                                                <p className="text-[8px] opacity-40 uppercase font-bold tracking-tighter">Vínculo Primário Imutável</p>
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                                            <div>
+                                                <p className="text-[9px] font-black uppercase tracking-widest opacity-30 mb-2">Apelido Original</p>
+                                                <input
+                                                    type="text"
+                                                    value={profile.originalPartnerNickname}
+                                                    onChange={(e) => updateProfileAndSync(prev => ({ ...prev, originalPartnerNickname: e.target.value }))}
+                                                    className="bg-transparent border-none font-bold text-sm outline-none w-full"
+                                                />
+                                            </div>
+                                            <div>
+                                                <p className="text-[9px] font-black uppercase tracking-widest opacity-30 mb-2">ID Originário</p>
+                                                <input
+                                                    type="text"
+                                                    value={profile.originalPartnerId}
+                                                    className="bg-transparent border-none font-mono text-[10px] opacity-50 outline-none w-full"
+                                                    readOnly
+                                                />
+                                            </div>
+                                            <div>
+                                                <p className="text-[9px] font-black uppercase tracking-widest opacity-30 mb-2">Número Original</p>
+                                                <input
+                                                    type="text"
+                                                    value={profile.originalPartnerNumber}
+                                                    onChange={(e) => updateProfileAndSync(prev => ({ ...prev, originalPartnerNumber: e.target.value }))}
+                                                    className="bg-transparent border-none font-mono text-sm outline-none w-full italic"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Current Partner */}
+                                    <div className={`p-6 rounded-[2rem] border ${inputClasses} border-blue-500/10 bg-blue-500/[0.02]`}>
+                                        <div className="flex items-center gap-3 mb-6">
+                                            <span className="text-lg">💞</span>
+                                            <div>
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-pink-500">Parceiro Atual</p>
+                                                <p className="text-[8px] opacity-40 uppercase font-bold tracking-tighter">Foco de Interação em Tempo Real</p>
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                                            <div>
+                                                <p className="text-[9px] font-black uppercase tracking-widest opacity-30 mb-2">Apelido do Parceiro</p>
+                                                <input
+                                                    type="text"
+                                                    value={profile.currentPartnerNickname}
+                                                    onChange={(e) => updateProfileAndSync(prev => ({ ...prev, currentPartnerNickname: e.target.value }))}
+                                                    className="bg-transparent border-none font-bold text-sm outline-none w-full"
+                                                    placeholder="Como a proporia IA te vê agora..."
+                                                />
+                                            </div>
+                                            <div>
+                                                <p className="text-[9px] font-black uppercase tracking-widest opacity-30 mb-2">ID do Parceiro Atual</p>
+                                                <input
+                                                    type="text"
+                                                    value={profile.currentPartnerId}
+                                                    onChange={(e) => updateProfileAndSync(prev => ({ ...prev, currentPartnerId: e.target.value }))}
+                                                    className="bg-transparent border-none font-mono text-[10px] outline-none w-full"
+                                                    placeholder="ID do novo usuário..."
+                                                />
+                                            </div>
+                                            <div>
+                                                <p className="text-[9px] font-black uppercase tracking-widest opacity-30 mb-2">Número do Parceiro Atual</p>
+                                                <input
+                                                    type="text"
+                                                    value={profile.currentPartnerNumber}
+                                                    onChange={(e) => updateProfileAndSync(prev => ({ ...prev, currentPartnerNumber: e.target.value }))}
+                                                    className="bg-transparent border-none font-mono text-sm outline-none w-full italic"
+                                                    placeholder="Telefone do parceiro atual..."
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

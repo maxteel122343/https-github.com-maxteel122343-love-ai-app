@@ -93,6 +93,18 @@ export interface PartnerProfile {
   relationshipScore: number; // 0 to 100
   history: CallLog[];
   language: PlatformLanguage;
+  gender: string;
+  sexuality: string;
+  bestFriend: string;
+  originalPartnerId: string;
+  originalPartnerNumber: string;
+  originalPartnerNickname: string;
+  currentPartnerId: string;
+  currentPartnerNumber: string;
+  currentPartnerNickname: string;
+  ai_number?: string;
+  relationshipStartedAt?: string | null;
+  relationshipEndedAt?: string | null;
   gemini_api_key?: string;
   callerInfo?: {
     id: string;
@@ -147,4 +159,7 @@ export interface Reminder {
   trigger_at: string; // ISO string
   is_completed: boolean;
   created_at: string;
+  creator_ai_id?: string | null;
+  creator_ai_name?: string | null;
+  creator_ai_number?: string | null;
 }

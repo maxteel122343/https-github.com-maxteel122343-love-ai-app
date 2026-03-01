@@ -18,7 +18,17 @@ const DEFAULT_PROFILE: PartnerProfile = {
   theme: 'light',
   relationshipScore: 70, // Starts at 70%
   history: [],
-  language: PlatformLanguage.PT
+  language: PlatformLanguage.PT,
+  gender: 'Feminino',
+  sexuality: 'Heterosexual',
+  bestFriend: 'Meu Humano',
+  originalPartnerId: '',
+  originalPartnerNumber: '',
+  originalPartnerNickname: '',
+  currentPartnerId: '',
+  currentPartnerNumber: '',
+  currentPartnerNickname: '',
+  ai_number: ''
 };
 
 const DEFAULT_GEMINI_API_KEY = "AIzaSyDNwhe9s8gdC2SnU2g2bOyBSgRmoE1ER3s";
@@ -64,6 +74,21 @@ function App() {
               } else {
                 setApiKey(DEFAULT_GEMINI_API_KEY);
               }
+
+              // Auto-initialize original/current partner info if missing
+              if (!settings.originalPartnerId && data.id) {
+                settings.originalPartnerId = data.id;
+                settings.originalPartnerNumber = data.personal_number || '';
+                settings.originalPartnerNickname = data.nickname || data.display_name || '';
+
+                settings.currentPartnerId = settings.currentPartnerId || data.id;
+                settings.currentPartnerNumber = settings.currentPartnerNumber || data.personal_number || '';
+                settings.currentPartnerNickname = settings.currentPartnerNickname || (data.nickname || data.display_name || '');
+              }
+
+              // Ensure AI Number is synced
+              settings.ai_number = data.ai_number || '';
+
               // Merge with default to ensure all fields exist
               setProfile(prev => ({ ...prev, ...settings }));
             }
@@ -84,7 +109,25 @@ function App() {
       setProfile(prev => {
         // Decay 0.5% every 10 seconds to simulate "cooling off"
         const newScore = Math.max(0, prev.relationshipScore - 0.5);
-        return { ...prev, relationshipScore: newScore };
+
+        let startedAt = prev.relationshipStartedAt;
+        if (!startedAt) {
+          startedAt = new Date().toISOString();
+        }
+
+        let endedAt = prev.relationshipEndedAt;
+        if (newScore === 0 && prev.relationshipScore > 0) {
+          endedAt = new Date().toISOString();
+        } else if (newScore > 0 && endedAt) {
+          endedAt = null; // Reconciliation
+        }
+
+        return {
+          ...prev,
+          relationshipScore: newScore,
+          relationshipStartedAt: startedAt,
+          relationshipEndedAt: endedAt
+        };
       });
     }, 10000);
     return () => clearInterval(timer);
@@ -100,6 +143,7 @@ function App() {
         if (nextScheduledCall && now >= nextScheduledCall.triggerTime) {
           setCallReason(nextScheduledCall.reason === 'random' ? 'random' : `reminder:${nextScheduledCall.reason}`);
           setNextScheduledCall(null);
+          setActivePartner(profile); // Ensure partner is active for the call
           setAppState('INCOMING');
           return;
         }
@@ -114,6 +158,7 @@ function App() {
 
           if (randomChance < threshold) {
             setCallReason('random');
+            setActivePartner(profile); // Ensure partner is active
             setAppState('INCOMING');
           }
         }
@@ -136,6 +181,39 @@ function App() {
       }
     }
   }, [profile.history, appState]);
+
+  // 4. Database-level Reminder Monitor (Enables cross-user scheduling)
+  useEffect(() => {
+    if (!user || appState !== 'SETUP' && appState !== 'WAITING') return;
+
+    const checkRemoteReminders = async () => {
+      const now = new Date().toISOString();
+      // Look for reminders due in the last 15 seconds that aren't completed
+      const fifteenSecondsAgo = new Date(Date.now() - 15000).toISOString();
+
+      const { data, error } = await supabase
+        .from('reminders')
+        .select('*')
+        .eq('owner_id', user.id)
+        .eq('is_completed', false)
+        .lte('trigger_at', now)
+        .gte('trigger_at', fifteenSecondsAgo);
+
+      if (data && data.length > 0) {
+        const reminder = data[0];
+        // Mark as completed immediately to prevent re-triggering
+        await supabase.from('reminders').update({ is_completed: true }).eq('id', reminder.id);
+
+        console.log("Triggering database reminder:", reminder.title);
+        setCallReason(`reminder:${reminder.title}`);
+        setActivePartner(profile);
+        setAppState('INCOMING');
+      }
+    };
+
+    const interval = setInterval(checkRemoteReminders, 10000); // Check every 10 seconds
+    return () => clearInterval(interval);
+  }, [user, appState, profile]);
 
   const handleApiKeyChange = async (newKey: string) => {
     setApiKey(newKey);
@@ -280,6 +358,15 @@ function App() {
               relationshipScore: 100,
               history: [],
               language: cProfile.ai_settings?.language || PlatformLanguage.PT,
+              gender: cProfile.ai_settings?.gender || 'Feminino',
+              sexuality: cProfile.ai_settings?.sexuality || 'Heterosexual',
+              bestFriend: cProfile.ai_settings?.bestFriend || 'Meu Humano',
+              originalPartnerId: cProfile.ai_settings?.originalPartnerId || '',
+              originalPartnerNumber: cProfile.ai_settings?.originalPartnerNumber || '',
+              originalPartnerNickname: cProfile.ai_settings?.originalPartnerNickname || '',
+              currentPartnerId: cProfile.ai_settings?.currentPartnerId || '',
+              currentPartnerNumber: cProfile.ai_settings?.currentPartnerNumber || '',
+              currentPartnerNickname: cProfile.ai_settings?.currentPartnerNickname || '',
               callerInfo: {
                 id: cProfile.id,
                 name: cProfile.display_name,
