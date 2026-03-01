@@ -184,9 +184,20 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ profile, setProfile, o
         }
     }, [user]);
 
+    const formatDisplayNumber = (number: string, isAi: boolean) => {
+        if (!number) return "";
+        const digits = number.replace(/\D/g, '');
+        const prefix = isAi ? 'Ai-' : 'Hu-';
+        const parts = digits.match(/.{1,3}/g) || [];
+        return `${prefix}${parts.join(' ')}`;
+    };
+
     const copyToClipboard = (text: string) => {
-        navigator.clipboard.writeText(text);
-        alert("Copiado!");
+        navigator.clipboard.writeText(text).then(() => {
+            alert("Número copiado para a área de transferência!");
+        }).catch(err => {
+            console.error('Erro ao copiar: ', err);
+        });
     };
 
     return (
@@ -219,7 +230,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ profile, setProfile, o
                         <div className="flex items-center gap-2 cursor-pointer group" onClick={() => setShowProfileModal(true)}>
                             <div className="flex flex-col items-end mr-1">
                                 <span className="text-[11px] font-black uppercase tracking-tighter truncate max-w-[100px]">{currentUserProfile?.display_name || "Usuário"}</span>
-                                <span className="text-[9px] opacity-40 font-bold">{currentUserProfile?.personal_number || ""}</span>
+                                <span className="text-[9px] opacity-40 font-bold">{formatDisplayNumber(currentUserProfile?.personal_number || "", false)}</span>
                             </div>
                             <div className="w-10 h-10 rounded-xl bg-slate-200 border border-white/10 overflow-hidden shadow-lg transition-transform group-hover:scale-105">
                                 {currentUserProfile?.avatar_url ? (
@@ -625,7 +636,9 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ profile, setProfile, o
                                     <div className={`p-5 rounded-[2rem] border flex items-center justify-between ${isDark ? 'bg-white/5' : 'bg-slate-50'}`}>
                                         <div>
                                             <p className="text-[9px] font-black opacity-30 uppercase tracking-widest italic mb-1">Meu Número</p>
-                                            <p className="text-lg font-black italic tracking-tighter text-blue-600">{currentUserProfile.personal_number}</p>
+                                            <p className="text-lg font-black italic tracking-tighter text-blue-600">
+                                                {formatDisplayNumber(currentUserProfile.personal_number, false)}
+                                            </p>
                                         </div>
                                         <button onClick={() => copyToClipboard(currentUserProfile.personal_number)} className="p-3 bg-blue-600/10 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all">
                                             📋
@@ -634,7 +647,9 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ profile, setProfile, o
                                     <div className={`p-5 rounded-[2rem] border flex items-center justify-between ${isDark ? 'bg-white/5' : 'bg-slate-50'}`}>
                                         <div>
                                             <p className="text-[9px] font-black opacity-30 uppercase tracking-widest italic mb-1">Número da IA (Público)</p>
-                                            <p className="text-lg font-black italic tracking-tighter text-pink-600">{currentUserProfile.ai_number}</p>
+                                            <p className="text-lg font-black italic tracking-tighter text-pink-600">
+                                                {formatDisplayNumber(currentUserProfile.ai_number, true)}
+                                            </p>
                                         </div>
                                         <button onClick={() => copyToClipboard(currentUserProfile.ai_number)} className="p-3 bg-pink-600/10 text-pink-600 rounded-xl hover:bg-pink-600 hover:text-white transition-all">
                                             📋
