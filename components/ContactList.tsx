@@ -4,7 +4,7 @@ import { UserProfile, Contact, PartnerProfile, Mood, VoiceName, Accent, Callback
 
 interface ContactListProps {
     currentUser: any;
-    onCallPartner: (profile: PartnerProfile) => void;
+    onCallPartner: (profile: PartnerProfile, isAi: boolean) => void;
     isDark: boolean;
 }
 
@@ -153,8 +153,9 @@ export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPar
         );
     });
 
-    const handleCallContact = (contact: Contact) => {
-        if (!contact.profile) return;
+    const handleCallContact = async (contact: Contact) => {
+        if (!contact.profile || !currentUser) return;
+
         const partnerProfile: PartnerProfile = {
             name: contact.is_ai_contact ? `AI ${contact.profile.display_name}` : contact.profile.display_name,
             image: contact.profile.avatar_url || contact.profile.ai_settings?.image || null,
@@ -170,7 +171,24 @@ export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPar
             language: contact.profile.ai_settings?.language || PlatformLanguage.PT,
             gemini_api_key: contact.profile.ai_settings?.gemini_api_key
         };
-        onCallPartner(partnerProfile);
+
+        // Create call record for signaling
+        const { error } = await supabase
+            .from('calls')
+            .insert({
+                caller_id: currentUser.id,
+                target_id: contact.profile.id,
+                is_ai_call: contact.is_ai_contact,
+                status: 'pending'
+            });
+
+        if (error) {
+            alert("Erro ao sinalizar chamada. Verifique sua conexão.");
+            console.error(error);
+            return;
+        }
+
+        onCallPartner(partnerProfile, contact.is_ai_contact);
     };
 
     return (

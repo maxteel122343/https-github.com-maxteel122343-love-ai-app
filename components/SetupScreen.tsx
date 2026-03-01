@@ -17,11 +17,13 @@ interface SetupScreenProps {
     user: any;
     currentUserProfile: UserProfile | null;
     onUpdateUserProfile: (profile: UserProfile) => void;
+    onCallPartner: (profile: PartnerProfile, isAi: boolean) => void;
+    showAuth: boolean;
+    setShowAuth: (show: boolean) => void;
 }
 
-export const SetupScreen: React.FC<SetupScreenProps> = ({ profile, setProfile, onStartCall, nextScheduledCall, apiKey, setApiKey, user, currentUserProfile, onUpdateUserProfile }) => {
+export const SetupScreen: React.FC<SetupScreenProps> = ({ profile, setProfile, onStartCall, onCallPartner, nextScheduledCall, apiKey, setApiKey, user, currentUserProfile, onUpdateUserProfile, showAuth, setShowAuth }) => {
     const [activeTab, setActiveTab] = useState<'dashboard' | 'contacts' | 'calendar' | 'memory' | 'config' | 'chats'>('dashboard');
-    const [showAuth, setShowAuth] = useState(false);
     const [showProfileModal, setShowProfileModal] = useState(false);
     const [showNotifications, setShowNotifications] = useState(false);
     const [notifications, setNotifications] = useState<any[]>([]);
@@ -393,7 +395,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ profile, setProfile, o
                     )}
 
                     {activeTab === 'contacts' && user && (
-                        <div className="max-w-xl mx-auto w-full"><ContactList currentUser={user} onCallPartner={(p) => { setProfile(p); onStartCall(); }} isDark={isDark} /></div>
+                        <div className="max-w-xl mx-auto w-full"><ContactList currentUser={user} onCallPartner={onCallPartner} isDark={isDark} /></div>
                     )}
 
                     {activeTab === 'config' && (

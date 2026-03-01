@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { SetupScreen } from './components/SetupScreen';
 import { CallScreen } from './components/CallScreen';
 import { IncomingCallScreen } from './components/IncomingCallScreen';
+import { OutboundCallingScreen } from './components/OutboundCallingScreen';
 import { PartnerProfile, Mood, VoiceName, Accent, CallbackIntensity, ScheduledCall, CallLog, PlatformLanguage, UserProfile } from './types';
 import { supabase } from './supabaseClient';
 
@@ -22,7 +23,7 @@ const DEFAULT_PROFILE: PartnerProfile = {
 
 const DEFAULT_GEMINI_API_KEY = "AIzaSyDNwhe9s8gdC2SnU2g2bOyBSgRmoE1ER3s";
 
-type AppState = 'SETUP' | 'CALLING' | 'WAITING' | 'INCOMING';
+type AppState = 'SETUP' | 'CALLING' | 'WAITING' | 'INCOMING' | 'OUTBOUND_CALLING';
 
 function App() {
   const [appState, setAppState] = useState<AppState>('SETUP');
@@ -32,6 +33,9 @@ function App() {
   const [apiKey, setApiKey] = useState<string>(() => localStorage.getItem('GEMINI_API_KEY') || DEFAULT_GEMINI_API_KEY);
   const [user, setUser] = useState<any>(null);
   const [currentUserProfile, setCurrentUserProfile] = useState<UserProfile | null>(null);
+  const [showAuth, setShowAuth] = useState(false);
+  const [activeCallId, setActiveCallId] = useState<string | null>(null);
+  const [callStatus, setCallStatus] = useState<'pending' | 'accepted' | 'rejected' | 'no_answer'>('pending');
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -141,16 +145,52 @@ function App() {
     }
   };
 
-  const startCall = () => {
+  const handleCallPartner = async (partnerProfile: PartnerProfile, isAi: boolean = true) => {
+    if (!user) {
+      alert("Faça login para ligar!");
+      setShowAuth(true);
+      return;
+    }
+
+    // Attempt to find the target user by number (stored in partnerProfile if coming from ContactList)
+    setProfile(partnerProfile);
+    setAppState('OUTBOUND_CALLING');
+    setCallStatus('pending');
+  };
+
+  const startCall = async () => {
     if (!profile.personality.trim()) {
       alert("Por favor, descreva a personalidade!");
       return;
     }
-    setCallReason('initial');
-    setAppState('CALLING');
+
+    if (user) {
+      // Create a "self-call" record for record keeping or just go to CALLING
+      // For the AI button on the dashboard:
+      const { data, error } = await supabase.from('calls').insert({
+        caller_id: user.id,
+        target_id: user.id, // Calling own AI
+        is_ai_call: true,
+        status: 'pending'
+      }).select().single();
+
+      if (data) {
+        setActiveCallId(data.id);
+        setAppState('OUTBOUND_CALLING');
+        // The Realtime listener will handle the transition to CALLING if the AI "accepts"
+      }
+    } else {
+      setCallReason('initial');
+      setAppState('CALLING');
+    }
   };
 
-  const handleEndCall = (reason: 'hangup_abrupt' | 'hangup_normal' | 'error', scheduled?: ScheduledCall) => {
+  const handleEndCall = async (reason: 'hangup_abrupt' | 'hangup_normal' | 'error', scheduled?: ScheduledCall) => {
+    // 0. Update call status if active
+    if (activeCallId) {
+      await supabase.from('calls').update({ status: 'ended' }).eq('id', activeCallId);
+    }
+
     // 1. Update History
     const newLog: CallLog = {
       id: Date.now().toString(),
@@ -187,13 +227,94 @@ function App() {
     }));
   };
 
-  const handleAcceptCallback = () => {
+  const handleAcceptCallback = async () => {
+    if (activeCallId) {
+      await supabase.from('calls').update({ status: 'accepted' }).eq('id', activeCallId);
+    }
     setAppState('CALLING');
   };
 
-  const handleDeclineCallback = () => {
+  const handleDeclineCallback = async () => {
+    if (activeCallId) {
+      await supabase.from('calls').update({ status: 'rejected' }).eq('id', activeCallId);
+    }
     setProfile(prev => ({ ...prev, relationshipScore: Math.max(0, prev.relationshipScore - 10) })); // Declining hurts score
     setAppState('SETUP');
+  };
+
+  // 4. Supabase Realtime Call Subscription
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase.channel('calls_realtime')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'calls',
+        filter: `target_id=eq.${user.id}`
+      }, async (payload) => {
+        const newCall = payload.new as any;
+        if (newCall.status === 'pending') {
+          setActiveCallId(newCall.id);
+
+          // AI Handling
+          if (newCall.is_ai_call) {
+            // Decision logic for AI
+            const shouldPickUp = await evaluateAiDecision(newCall);
+            if (shouldPickUp) {
+              await supabase.from('calls').update({ status: 'accepted' }).eq('id', newCall.id);
+            } else {
+              await supabase.from('calls').update({ status: 'rejected' }).eq('id', newCall.id);
+            }
+          } else {
+            // Human target
+            setAppState('INCOMING');
+          }
+        }
+      })
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'calls',
+        filter: `caller_id=eq.${user.id}`
+      }, (payload) => {
+        const updatedCall = payload.new as any;
+        if (updatedCall.id === activeCallId) {
+          setCallStatus(updatedCall.status);
+          if (updatedCall.status === 'accepted') {
+            setAppState('CALLING');
+          } else if (updatedCall.status === 'rejected' || updatedCall.status === 'no_answer') {
+            setTimeout(() => {
+              setAppState('SETUP');
+              setActiveCallId(null);
+            }, 3000);
+          }
+        }
+      })
+      .subscribe();
+
+    return () => { channel.unsubscribe(); };
+  }, [user, activeCallId]);
+
+  const evaluateAiDecision = async (call: any) => {
+    // Simple logic: If relationship score is very low and AI is "Cold", might reject.
+    // If user asked to "always reject" in personality, follow that.
+    // For now, let's keep it 90% chance to pick up unless personality says otherwise.
+
+    if (profile.personality.toLowerCase().includes("sempre rejeitar")) return false;
+    if (profile.personality.toLowerCase().includes("rejeite ligações")) return false;
+
+    if (profile.relationshipScore < 10) return Math.random() > 0.7; // 30% chance if score is < 10
+
+    return true; // Pick up by default
+  };
+
+  const handleCancelOutbound = async () => {
+    if (activeCallId) {
+      await supabase.from('calls').update({ status: 'ended' }).eq('id', activeCallId);
+    }
+    setAppState('SETUP');
+    setActiveCallId(null);
   };
 
   return (
@@ -203,12 +324,15 @@ function App() {
           profile={profile}
           setProfile={setProfile}
           onStartCall={startCall}
+          onCallPartner={handleCallPartner}
           nextScheduledCall={nextScheduledCall}
           apiKey={apiKey}
           setApiKey={handleApiKeyChange}
           user={user}
           currentUserProfile={currentUserProfile}
           onUpdateUserProfile={setCurrentUserProfile}
+          showAuth={showAuth}
+          setShowAuth={setShowAuth}
         />
       )}
 
@@ -231,6 +355,14 @@ function App() {
           )}
           <button onClick={() => setAppState('SETUP')} className="mt-8 text-xs underline">Voltar ao Dashboard</button>
         </div>
+      )}
+
+      {appState === 'OUTBOUND_CALLING' && (
+        <OutboundCallingScreen
+          profile={profile}
+          onCancel={handleCancelOutbound}
+          status={callStatus}
+        />
       )}
 
       {appState === 'INCOMING' && (
