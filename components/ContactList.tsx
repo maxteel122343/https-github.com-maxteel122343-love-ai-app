@@ -90,8 +90,8 @@ export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPar
     };
 
     const handleManualCreate = async () => {
-        if (!newContact.name || newContact.number.length !== 8) {
-            alert("Preencha o nome e um número de exatamente 8 dígitos.");
+        if (!newContact.name || newContact.number.length !== 9) {
+            alert("Preencha o nome e um número de exatamente 9 dígitos.");
             return;
         }
 
@@ -115,6 +115,22 @@ export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPar
             fetchContacts();
         }
         setLoading(false);
+    };
+
+    const formatDisplayNumber = (number: string, isAi: boolean) => {
+        if (!number) return isAi ? 'AI-OFFLINE' : 'HUMANO-LATENTE';
+        const digits = number.replace(/\D/g, '');
+        const prefix = isAi ? 'Ai-' : 'Hu-';
+        const parts = digits.match(/.{1,3}/g) || [];
+        return `${prefix}${parts.join(' ')}`;
+    };
+
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text).then(() => {
+            alert("Número copiado para a área de transferência!");
+        }).catch(err => {
+            console.error('Erro ao copiar: ', err);
+        });
     };
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -174,12 +190,22 @@ export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPar
                         <div className="flex flex-col sm:flex-row gap-8">
                             <div className="flex-1">
                                 <p className="text-[9px] font-black opacity-20 uppercase tracking-widest mb-1">Linha Pessoal</p>
-                                <p className="text-2xl font-black italic tracking-tighter text-blue-600">{myProfile.personal_number}</p>
+                                <div className="flex items-center gap-2">
+                                    <p className="text-2xl font-black italic tracking-tighter text-blue-600">
+                                        {formatDisplayNumber(myProfile.personal_number, false)}
+                                    </p>
+                                    <button onClick={() => copyToClipboard(myProfile.personal_number)} className="opacity-30 hover:opacity-100 transition-opacity">📋</button>
+                                </div>
                             </div>
                             <div className="hidden sm:block w-[1px] bg-inherit opacity-20" />
                             <div className="flex-1">
                                 <p className="text-[9px] font-black opacity-20 uppercase tracking-widest mb-1">Cortex AI (Público)</p>
-                                <p className="text-2xl font-black italic tracking-tighter text-pink-600">{myProfile.ai_number}</p>
+                                <div className="flex items-center gap-2">
+                                    <p className="text-2xl font-black italic tracking-tighter text-pink-600">
+                                        {formatDisplayNumber(myProfile.ai_number, true)}
+                                    </p>
+                                    <button onClick={() => copyToClipboard(myProfile.ai_number)} className="opacity-30 hover:opacity-100 transition-opacity">📋</button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -219,9 +245,20 @@ export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPar
                         <div className="w-20 h-20 rounded-[2rem] bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-3xl text-white shadow-xl">
                             {searchResult.avatar_url ? <img src={searchResult.avatar_url} className="w-full h-full object-cover rounded-[2rem]" /> : '👤'}
                         </div>
-                        <div className="flex-1 text-center sm:text-left">
+                        <div className="flex-1 text-center sm:text-left text-ellipsis overflow-hidden">
                             <h4 className="text-xl font-black italic tracking-tighter uppercase">{searchResult.display_name}</h4>
-                            <p className="text-[10px] font-black opacity-30 uppercase tracking-[0.2em] mt-1">{searchResult.personal_number}</p>
+                            <div className="flex items-center justify-center sm:justify-start gap-2 mt-1">
+                                <p className="text-[10px] font-black opacity-30 uppercase tracking-[0.2em]">
+                                    {formatDisplayNumber(searchResult.personal_number, false)}
+                                </p>
+                                <button onClick={() => copyToClipboard(searchResult.personal_number)} className="opacity-20 hover:opacity-100">📋</button>
+                            </div>
+                            <div className="flex items-center justify-center sm:justify-start gap-2">
+                                <p className="text-[10px] font-black opacity-30 uppercase tracking-[0.2em]">
+                                    {formatDisplayNumber(searchResult.ai_number, true)}
+                                </p>
+                                <button onClick={() => copyToClipboard(searchResult.ai_number)} className="opacity-20 hover:opacity-100">📋</button>
+                            </div>
                         </div>
                         <div className="flex flex-col gap-2 w-full sm:w-auto">
                             <button
@@ -263,9 +300,19 @@ export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPar
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <h4 className="font-black text-base tracking-tight truncate italic">{contact.alias}</h4>
-                                    <p className="text-[9px] font-black opacity-30 uppercase tracking-widest mt-1">
-                                        {contact.is_ai_contact ? `INTELECTO ARTIFICIAL • ${contact.profile?.ai_number || 'OFFLINE'}` : `CONTATO HUMANO • ${contact.profile?.personal_number || 'LATENTE'}`}
-                                    </p>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <p className="text-[9px] font-black opacity-30 uppercase tracking-widest truncate">
+                                            {contact.is_ai_contact
+                                                ? formatDisplayNumber(contact.profile?.ai_number || '', true)
+                                                : formatDisplayNumber(contact.profile?.personal_number || '', false)}
+                                        </p>
+                                        <button
+                                            onClick={() => copyToClipboard(contact.is_ai_contact ? contact.profile?.ai_number || '' : contact.profile?.personal_number || '')}
+                                            className="opacity-0 group-hover:opacity-30 hover:!opacity-100 transition-opacity"
+                                        >
+                                            📋
+                                        </button>
+                                    </div>
                                 </div>
                                 <button
                                     onClick={() => handleCallContact(contact)}
@@ -321,11 +368,11 @@ export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPar
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-blue-600 block mb-3 ml-4">Frequência Digital (8 Dígitos)</label>
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-blue-600 block mb-3 ml-4">Frequência Digital (9 Dígitos)</label>
                                     <input
                                         type="text"
-                                        maxLength={8}
-                                        placeholder="00000000"
+                                        maxLength={9}
+                                        placeholder="000 000 000"
                                         value={newContact.number}
                                         onChange={e => setNewContact(prev => ({ ...prev, number: e.target.value.replace(/\D/g, '') }))}
                                         className={`w-full p-6 rounded-[2rem] border text-sm font-black tracking-[0.5em] outline-none text-center transition-all ${inputClasses}`}
