@@ -3,6 +3,7 @@ import { SetupScreen } from './components/SetupScreen';
 import { CallScreen } from './components/CallScreen';
 import { IncomingCallScreen } from './components/IncomingCallScreen';
 import { OutboundCallingScreen } from './components/OutboundCallingScreen';
+import { HumanCallScreen } from './components/HumanCallScreen';
 import { PartnerProfile, Mood, VoiceName, Accent, CallbackIntensity, ScheduledCall, CallLog, PlatformLanguage, UserProfile } from './types';
 import { supabase } from './supabaseClient';
 
@@ -34,7 +35,7 @@ const DEFAULT_PROFILE: PartnerProfile = {
 
 const DEFAULT_GEMINI_API_KEY = "AIzaSyDNwhe9s8gdC2SnU2g2bOyBSgRmoE1ER3s";
 
-type AppState = 'SETUP' | 'CALLING' | 'WAITING' | 'INCOMING' | 'OUTBOUND_CALLING';
+type AppState = 'SETUP' | 'CALLING' | 'WAITING' | 'INCOMING' | 'OUTBOUND_CALLING' | 'HUMAN_CALL';
 
 function App() {
   const [appState, setAppState] = useState<AppState>('SETUP');
@@ -49,6 +50,8 @@ function App() {
   const [activeCallId, setActiveCallId] = useState<string | null>(null);
   const [callStatus, setCallStatus] = useState<'pending' | 'accepted' | 'rejected' | 'no_answer'>('pending');
   const [callerProfile, setCallerProfile] = useState<UserProfile | null>(null);
+  // Track whether the pending INCOMING call is human-to-human (not AI)
+  const pendingCallIsHumanRef = React.useRef<boolean>(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -312,7 +315,12 @@ function App() {
     if (activeCallId) {
       await supabase.from('calls').update({ status: 'accepted' }).eq('id', activeCallId);
     }
-    setAppState('CALLING');
+    // Route to correct call screen based on call type
+    if (pendingCallIsHumanRef.current) {
+      setAppState('HUMAN_CALL');
+    } else {
+      setAppState('CALLING');
+    }
   };
 
   const handleDeclineCallback = async () => {
@@ -383,6 +391,7 @@ function App() {
 
           // AI Handling
           if (newCall.is_ai_call) {
+            pendingCallIsHumanRef.current = false;
             console.log("AI está decidindo se atende...");
             const shouldPickUp = await evaluateAiDecision(newCall);
             if (shouldPickUp) {
@@ -391,7 +400,8 @@ function App() {
               await supabase.from('calls').update({ status: 'rejected' }).eq('id', newCall.id);
             }
           } else {
-            // Human target
+            // Human-to-human call
+            pendingCallIsHumanRef.current = true;
             if (profile.isAiReceptionistEnabled) {
               console.log("Recepcionista AI Interceptando...");
               await supabase.from('calls').update({ status: 'accepted' }).eq('id', newCall.id);
@@ -423,7 +433,7 @@ function App() {
               setActivePartner(incomingPartner);
               setAppState('CALLING');
             } else {
-              console.log("Chamada para humano - Ativando INCOMING");
+              console.log("Chamada para humano - Ativando INCOMING (WebRTC pendente)");
               setAppState('INCOMING');
             }
           }
@@ -529,6 +539,20 @@ function App() {
           profile={activePartner}
           onCancel={handleCancelOutbound}
           status={callStatus}
+        />
+      )}
+
+      {appState === 'HUMAN_CALL' && activePartner && activeCallId && (
+        <HumanCallScreen
+          callId={activeCallId}
+          partner={activePartner}
+          isCaller={false}  // we only enter HUMAN_CALL as the receiver
+          userId={user?.id || ''}
+          isDark={profile.theme === 'dark'}
+          onEnd={() => {
+            setAppState('SETUP');
+            setActiveCallId(null);
+          }}
         />
       )}
 
