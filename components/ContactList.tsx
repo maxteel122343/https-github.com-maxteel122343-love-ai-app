@@ -11,7 +11,7 @@ interface ContactListProps {
 export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPartner, isDark }) => {
     const [contacts, setContacts] = useState<Contact[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
-    const [searchResult, setSearchResult] = useState<UserProfile | null>(null);
+    const [searchResults, setSearchResults] = useState<UserProfile[]>([]);
     const [loading, setLoading] = useState(false);
     const [myProfile, setMyProfile] = useState<UserProfile | null>(null);
     const [showAddModal, setShowAddModal] = useState(false);
@@ -27,6 +27,19 @@ export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPar
             fetchContacts();
         }
     }, [currentUser]);
+
+    // Live البحث (Global Search) with debounce
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (searchQuery.trim().length >= 2) {
+                searchContact();
+            } else {
+                setSearchResults([]);
+            }
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
 
     const fetchMyProfile = async () => {
         const { data, error } = await supabase
@@ -50,16 +63,22 @@ export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPar
     };
 
     const searchContact = async () => {
-        if (!searchQuery.trim()) return;
+        if (!searchQuery.trim()) {
+            setSearchResults([]);
+            return;
+        }
         setLoading(true);
         const { data, error } = await supabase
             .from('profiles')
             .select('*')
-            .or(`personal_number.eq.${searchQuery},ai_number.eq.${searchQuery},nickname.ilike.%${searchQuery}%`)
-            .single();
+            .or(`personal_number.ilike.%${searchQuery}%,ai_number.ilike.%${searchQuery}%,nickname.ilike.%${searchQuery}%,display_name.ilike.%${searchQuery}%`)
+            .limit(10);
 
-        setSearchResult(data || null);
-        if (!data) alert("Nenhum usuário ou IA encontrado com esse número ou apelido.");
+        setSearchResults(data || []);
+        if (!data || data.length === 0) {
+            // No results alert removed to avoid annoyance during typing, can be kept if preferred.
+            // alert("Nenhum usuário ou IA encontrado com esse termo.");
+        }
         setLoading(false);
     };
 
@@ -83,8 +102,8 @@ export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPar
                 content: `${myProfile?.display_name || 'Alguém'} adicionou você aos contatos!`
             });
 
-            setSearchResult(null);
-            setSearchQuery('');
+            setSearchResults(prev => prev.filter(p => p.id !== profile.id));
+            if (searchResults.length <= 1) setSearchQuery('');
             fetchContacts();
         }
     };
@@ -256,42 +275,47 @@ export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPar
                 </button>
             </div>
 
-            {/* Search Result */}
-            {searchResult && (
-                <div className={`p-8 rounded-[3rem] border-2 border-blue-600/30 animate-in fade-in slide-in-from-top-6 ${cardClasses} shadow-2xl`}>
-                    <div className="flex flex-col sm:flex-row items-center gap-6">
-                        <div className="w-20 h-20 rounded-[2rem] bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-3xl text-white shadow-xl">
-                            {searchResult.avatar_url ? <img src={searchResult.avatar_url} className="w-full h-full object-cover rounded-[2rem]" /> : '👤'}
-                        </div>
-                        <div className="flex-1 text-center sm:text-left text-ellipsis overflow-hidden">
-                            <h4 className="text-xl font-black italic tracking-tighter uppercase">{searchResult.display_name}</h4>
-                            <div className="flex items-center justify-center sm:justify-start gap-2 mt-1">
-                                <p className="text-[10px] font-black opacity-30 uppercase tracking-[0.2em]">
-                                    {formatDisplayNumber(searchResult.personal_number, false)}
-                                </p>
-                                <button onClick={() => copyToClipboard(searchResult.personal_number)} className="opacity-20 hover:opacity-100">📋</button>
+            {/* Search Results List */}
+            {searchResults.length > 0 && (
+                <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-top-6 duration-500">
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-30 ml-4 mb--2">Resultados Globais</p>
+                    <div className="flex flex-col gap-3">
+                        {searchResults.map((result) => (
+                            <div key={result.id} className={`p-6 rounded-[2.5rem] border-2 border-blue-600/20 ${cardClasses} shadow-xl hover:border-blue-600/40 transition-all`}>
+                                <div className="flex flex-col sm:flex-row items-center gap-5">
+                                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500/20 to-indigo-600/20 flex items-center justify-center text-xl overflow-hidden border border-blue-500/10">
+                                        {result.avatar_url ? <img src={result.avatar_url} className="w-full h-full object-cover" /> : '👤'}
+                                    </div>
+                                    <div className="flex-1 text-center sm:text-left">
+                                        <h4 className="text-base font-black italic tracking-tighter uppercase">{result.display_name}</h4>
+                                        <div className="flex flex-wrap justify-center sm:justify-start gap-3 mt-1">
+                                            <div className="flex items-center gap-1 opacity-40">
+                                                <span className="text-[9px] font-black uppercase">Hu</span>
+                                                <p className="text-[9px] font-bold">{formatDisplayNumber(result.personal_number, false)}</p>
+                                            </div>
+                                            <div className="flex items-center gap-1 opacity-40">
+                                                <span className="text-[9px] font-black uppercase text-pink-500">Ai</span>
+                                                <p className="text-[9px] font-bold">{formatDisplayNumber(result.ai_number, true)}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2 w-full sm:w-auto">
+                                        <button
+                                            onClick={() => addContact(result, false)}
+                                            className="px-4 py-2 bg-blue-600/10 text-blue-600 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all whitespace-nowrap"
+                                        >
+                                            + Humano
+                                        </button>
+                                        <button
+                                            onClick={() => addContact(result, true)}
+                                            className="px-4 py-2 bg-pink-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-pink-700 shadow-lg shadow-pink-600/20 transition-all whitespace-nowrap"
+                                        >
+                                            + AI
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="flex items-center justify-center sm:justify-start gap-2">
-                                <p className="text-[10px] font-black opacity-30 uppercase tracking-[0.2em]">
-                                    {formatDisplayNumber(searchResult.ai_number, true)}
-                                </p>
-                                <button onClick={() => copyToClipboard(searchResult.ai_number)} className="opacity-20 hover:opacity-100">📋</button>
-                            </div>
-                        </div>
-                        <div className="flex flex-col gap-2 w-full sm:w-auto">
-                            <button
-                                onClick={() => addContact(searchResult, false)}
-                                className="px-6 py-3 bg-white dark:bg-white/5 text-blue-600 border border-blue-600/20 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all"
-                            >
-                                Perfil Humano
-                            </button>
-                            <button
-                                onClick={() => addContact(searchResult, true)}
-                                className="px-6 py-3 bg-pink-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-pink-700 shadow-lg shadow-pink-600/20 transition-all"
-                            >
-                                Perfil AI
-                            </button>
-                        </div>
+                        ))}
                     </div>
                 </div>
             )}
