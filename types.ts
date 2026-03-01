@@ -102,6 +102,7 @@ export interface PartnerProfile {
   currentPartnerId: string;
   currentPartnerNumber: string;
   currentPartnerNickname: string;
+  isAiReceptionistEnabled?: boolean;
   ai_number?: string;
   relationshipStartedAt?: string | null;
   relationshipEndedAt?: string | null;
@@ -110,6 +111,7 @@ export interface PartnerProfile {
     id: string;
     name: string;
     isPartner: boolean;
+    isContact?: boolean;
   };
 }
 

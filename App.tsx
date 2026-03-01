@@ -28,6 +28,7 @@ const DEFAULT_PROFILE: PartnerProfile = {
   currentPartnerId: '',
   currentPartnerNumber: '',
   currentPartnerNickname: '',
+  isAiReceptionistEnabled: false,
   ai_number: ''
 };
 
@@ -387,8 +388,40 @@ function App() {
             }
           } else {
             // Human target
-            console.log("Chamada para humano - Ativando INCOMING");
-            setAppState('INCOMING');
+            if (profile.isAiReceptionistEnabled) {
+              console.log("Recepcionista AI Interceptando...");
+              await supabase.from('calls').update({ status: 'accepted' }).eq('id', newCall.id);
+              setActiveCallId(newCall.id);
+
+              // We need to fetch the caller's profile to know who is calling
+              const { data: cProfile } = await supabase.from('profiles').select('*').eq('id', newCall.caller_id).single();
+
+              // Check if the caller is a saved contact
+              const { data: contactData } = await supabase
+                .from('contacts')
+                .select('id')
+                .eq('owner_id', user.id)
+                .eq('target_id', newCall.caller_id)
+                .single();
+
+              const incomingPartner: PartnerProfile = {
+                ...profile, // Keep my own AI settings (voice, personality, etc.)
+                name: profile.name,
+                callerInfo: {
+                  id: cProfile?.id || newCall.caller_id,
+                  name: cProfile?.display_name || 'Desconhecido',
+                  isPartner: false,
+                  isContact: !!contactData
+                }
+              };
+
+              setCallReason('receptionist');
+              setActivePartner(incomingPartner);
+              setAppState('CALLING');
+            } else {
+              console.log("Chamada para humano - Ativando INCOMING");
+              setAppState('INCOMING');
+            }
           }
         }
       })

@@ -686,6 +686,32 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ profile, setProfile, o
                                             </div>
                                         </div>
                                     </div>
+
+                                    {/* Section: AI Receptionist / Guardian */}
+                                    <div className={`p-10 rounded-[3rem] border ${cardClasses} relative overflow-hidden`}>
+                                        <div className={`absolute top-0 right-0 w-32 h-32 ${profile.isAiReceptionistEnabled ? 'bg-emerald-500/10' : 'bg-rose-500/10'} blur-3xl rounded-full transition-all duration-700`} />
+                                        <div className="flex justify-between items-start mb-10 relative z-10">
+                                            <div>
+                                                <h3 className="text-sm font-bold uppercase tracking-widest text-blue-600">Recepcionista AI & Guardiã</h3>
+                                                <p className="text-[10px] font-bold uppercase tracking-[0.2em] opacity-30 mt-2 italic">A IA intercepta chamadas de estranhos</p>
+                                            </div>
+                                            <button
+                                                onClick={() => updateProfileAndSync(prev => ({ ...prev, isAiReceptionistEnabled: !prev.isAiReceptionistEnabled }))}
+                                                className={`w-16 h-8 rounded-full relative transition-all duration-500 shadow-inner ${profile.isAiReceptionistEnabled ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-white/10'}`}
+                                            >
+                                                <div className={`absolute top-1 w-6 h-6 rounded-full bg-white shadow-xl transition-all duration-500 ${profile.isAiReceptionistEnabled ? 'left-9 rotate-0' : 'left-1 -rotate-180'}`} />
+                                            </button>
+                                        </div>
+                                        <div className="space-y-6 relative z-10">
+                                            <div className={`p-8 rounded-[2.5rem] border ${inputClasses} border-opacity-30`}>
+                                                <p className="text-[11px] font-medium leading-relaxed opacity-80 italic">
+                                                    {profile.isAiReceptionistEnabled
+                                                        ? `Ativado: Sua IA atenderá chamadas de números desconhecidos. Ela perguntará quem é, dirá que ${profile.currentPartnerNickname || 'você'} não está e anotará recados. Cuidado: ela pode mostrar ciúmes se não gostar de quem ligou!`
+                                                        : "Desativado: Você receberá todas as chamadas normalmente. A IA não interferirá no primeiro contato."}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

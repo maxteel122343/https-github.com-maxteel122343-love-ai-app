@@ -64,7 +64,7 @@ export const QuickChatTab: React.FC<QuickChatTabProps> = ({ currentUser, profile
         if (!contact.profile) return;
         const p: PartnerProfile = {
             name: contact.alias || contact.profile.display_name,
-            image: contact.profile.avatar_url || null,
+            image: contact.profile.ai_settings?.image || contact.profile.avatar_url || null,
             personality: contact.profile.ai_settings?.personality || "Misteriosa...",
             dailyContext: "",
             mood: contact.profile.ai_settings?.mood || Mood.LOVE,
@@ -72,9 +72,19 @@ export const QuickChatTab: React.FC<QuickChatTabProps> = ({ currentUser, profile
             accent: contact.profile.ai_settings?.accent || Accent.PAULISTA,
             intensity: contact.profile.ai_settings?.intensity || CallbackIntensity.MEDIUM,
             theme: isDark ? 'dark' : 'light',
-            relationshipScore: 100,
+            relationshipScore: contact.profile.ai_settings?.relationshipScore || 100,
             history: [],
-            language: contact.profile.ai_settings?.language || PlatformLanguage.PT
+            language: contact.profile.ai_settings?.language || PlatformLanguage.PT,
+            gender: contact.profile.ai_settings?.gender || 'Feminino',
+            sexuality: contact.profile.ai_settings?.sexuality || 'Heterosexual',
+            bestFriend: contact.profile.ai_settings?.bestFriend || 'Meu Humano',
+            originalPartnerId: contact.profile.ai_settings?.originalPartnerId || '',
+            originalPartnerNumber: contact.profile.ai_settings?.originalPartnerNumber || '',
+            originalPartnerNickname: contact.profile.ai_settings?.originalPartnerNickname || '',
+            currentPartnerId: contact.profile.ai_settings?.currentPartnerId || '',
+            currentPartnerNumber: contact.profile.ai_settings?.currentPartnerNumber || '',
+            currentPartnerNickname: contact.profile.ai_settings?.currentPartnerNickname || '',
+            isAiReceptionistEnabled: contact.profile.ai_settings?.isAiReceptionistEnabled || false
         };
         onCallPartner(p);
     };
