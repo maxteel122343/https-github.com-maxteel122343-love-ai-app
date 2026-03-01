@@ -84,14 +84,28 @@ export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPar
     };
 
     const addContact = async (profile: UserProfile, isAi: boolean) => {
+        // Create the primary contact
         const { error } = await supabase
             .from('contacts')
             .insert({
                 owner_id: currentUser.id,
                 target_id: profile.id,
                 is_ai_contact: isAi,
-                alias: profile.display_name
+                alias: profile.nickname || profile.display_name
             });
+
+        if (!error) {
+            // Also create a contact back for the target user (Mutual Contact)
+            // This ensures exman9002 will see exman9001
+            await supabase
+                .from('contacts')
+                .upsert({
+                    owner_id: profile.id,
+                    target_id: currentUser.id,
+                    is_ai_contact: false, // Adding the human caller back by default
+                    alias: myProfile?.nickname || myProfile?.display_name
+                }, { onConflict: 'owner_id,target_id,is_ai_contact' });
+        }
 
         if (error) {
             alert("Erro ao adicionar contato ou contato já existe.");
@@ -336,7 +350,7 @@ export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPar
                                             ) : '👤'}
                                         </div>
                                         <div className="flex-1 text-center sm:text-left">
-                                            <h4 className="text-lg font-black italic tracking-tighter uppercase">{result.display_name}</h4>
+                                            <h4 className="text-lg font-black italic tracking-tighter uppercase">{result.nickname || result.display_name}</h4>
                                             <div className="flex flex-wrap justify-center sm:justify-start gap-4 mt-1">
                                                 <div className="flex items-center gap-1.5 opacity-40">
                                                     <span className="text-[9px] font-black uppercase tracking-widest text-blue-500">Hu</span>
@@ -417,7 +431,7 @@ export const ContactList: React.FC<ContactListProps> = ({ currentUser, onCallPar
                                     )}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <h4 className="font-black text-base tracking-tight truncate italic">{contact.alias || contact.profile?.display_name}</h4>
+                                    <h4 className="font-black text-base tracking-tight truncate italic">{contact.alias || contact.profile?.nickname || contact.profile?.display_name}</h4>
                                     <div className="flex items-center gap-2 mt-1">
                                         <p className="text-[10px] font-black opacity-30 uppercase tracking-[0.2em] truncate">
                                             {contact.is_ai_contact
