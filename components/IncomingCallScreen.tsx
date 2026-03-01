@@ -3,17 +3,17 @@ import { PartnerProfile, UserProfile } from '../types';
 
 interface IncomingCallScreenProps {
     profile: PartnerProfile;
-    callerProfile: UserProfile | null;
+    activePartner: PartnerProfile;
     callReason: string;
     onAccept: () => void;
     onDecline: () => void;
 }
 
-export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({ profile, callerProfile, callReason, onAccept, onDecline }) => {
+export const IncomingCallScreen: React.FC<IncomingCallScreenProps> = ({ profile, activePartner, callReason, onAccept, onDecline }) => {
     const isDark = profile.theme === 'dark';
 
-    const displayName = callerProfile?.display_name || profile.name;
-    const displayImage = callerProfile?.avatar_url || profile.image;
+    const displayName = activePartner.name;
+    const displayImage = activePartner.image;
 
     // Translate technical reason to UI text
     let displayText = "Chamada de Vídeo";

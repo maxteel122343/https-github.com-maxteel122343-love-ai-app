@@ -34,6 +34,7 @@ function App() {
   const [user, setUser] = useState<any>(null);
   const [currentUserProfile, setCurrentUserProfile] = useState<UserProfile | null>(null);
   const [showAuth, setShowAuth] = useState(false);
+  const [activePartner, setActivePartner] = useState<PartnerProfile | null>(null);
   const [activeCallId, setActiveCallId] = useState<string | null>(null);
   const [callStatus, setCallStatus] = useState<'pending' | 'accepted' | 'rejected' | 'no_answer'>('pending');
   const [callerProfile, setCallerProfile] = useState<UserProfile | null>(null);
@@ -71,7 +72,7 @@ function App() {
     } else {
       setCurrentUserProfile(null);
     }
-  }, [user]);
+  }, [user, appState === 'SETUP']);
 
   useEffect(() => {
     localStorage.setItem('GEMINI_API_KEY', apiKey);
@@ -153,8 +154,7 @@ function App() {
       return;
     }
 
-    // Attempt to find the target user by number (stored in partnerProfile if coming from ContactList)
-    setProfile(partnerProfile);
+    setActivePartner(partnerProfile);
     setAppState('OUTBOUND_CALLING');
     setCallStatus('pending');
   };
@@ -177,6 +177,7 @@ function App() {
 
       if (data) {
         setActiveCallId(data.id);
+        setActivePartner(profile); // Talk to my own AI
         setAppState('OUTBOUND_CALLING');
         // The Realtime listener will handle the transition to CALLING if the AI "accepts"
       }
@@ -262,7 +263,31 @@ function App() {
 
           // Fetch caller profile info
           const { data: cProfile } = await supabase.from('profiles').select('*').eq('id', newCall.caller_id).single();
-          if (cProfile) setCallerProfile(cProfile);
+          if (cProfile) {
+            setCallerProfile(cProfile);
+
+            // Build temporary partner profile from caller's data
+            const incomingPartner: PartnerProfile = {
+              name: cProfile.nickname || cProfile.display_name,
+              image: cProfile.ai_settings?.image || cProfile.avatar_url,
+              personality: cProfile.ai_settings?.personality || "Um usuário do Warm Connections.",
+              dailyContext: "",
+              mood: cProfile.ai_settings?.mood || Mood.FUNNY,
+              voice: cProfile.ai_settings?.voice || VoiceName.Kore,
+              accent: cProfile.ai_settings?.accent || Accent.PAULISTA,
+              intensity: CallbackIntensity.MEDIUM,
+              theme: profile.theme,
+              relationshipScore: 100,
+              history: [],
+              language: cProfile.ai_settings?.language || PlatformLanguage.PT,
+              callerInfo: {
+                id: cProfile.id,
+                name: cProfile.display_name,
+                isPartner: false
+              }
+            };
+            setActivePartner(incomingPartner);
+          }
 
           // AI Handling
           if (newCall.is_ai_call) {
@@ -354,9 +379,9 @@ function App() {
         />
       )}
 
-      {appState === 'CALLING' && (
+      {appState === 'CALLING' && activePartner && (
         <CallScreen
-          profile={profile}
+          profile={activePartner}
           callReason={callReason}
           onEndCall={handleEndCall}
           apiKey={apiKey}
@@ -375,18 +400,18 @@ function App() {
         </div>
       )}
 
-      {appState === 'OUTBOUND_CALLING' && (
+      {appState === 'OUTBOUND_CALLING' && activePartner && (
         <OutboundCallingScreen
-          profile={profile}
+          profile={activePartner}
           onCancel={handleCancelOutbound}
           status={callStatus}
         />
       )}
 
-      {appState === 'INCOMING' && (
+      {appState === 'INCOMING' && activePartner && (
         <IncomingCallScreen
           profile={profile}
-          callerProfile={callerProfile}
+          activePartner={activePartner}
           callReason={callReason}
           onAccept={handleAcceptCallback}
           onDecline={handleDeclineCallback}
